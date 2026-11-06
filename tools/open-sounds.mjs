@@ -28,5 +28,5 @@ for (const [, name, takes] of layers.matchAll(/^\s+(\w+): (\d+),/gm)) {
 }
 console.log(`copied ${copied.length} files from ${from}`);
 if (copied.length) console.log(' ', copied.join(' '));
-console.log(`still missing ${missing.length} (the game plays silence for these; MISSING_ASSETS.md says where to find them)`);
+console.log(`still missing ${missing.length} (the build puts silence in their place; MISSING_ASSETS.md says where to find them)`);
 if (missing.length) console.log(' ', missing.join(' '));

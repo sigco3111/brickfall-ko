@@ -13,7 +13,7 @@ On Patch as `blendi/brickfall`. Built on [three-voxel-destruction](https://githu
 
 ## Missing sounds
 
-**This repo has no recorded sound effects.** The release's 90 recorded sounds are licensed for the game only, so they can't be passed on in a repo. The game runs without them: the synthesised layers and the music still play, and each missing sound is silence. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every one: what it is, where the original came from, its licence, and how to drop a sound in. One command fills 67 of them with open sounds of the same names from Patch's voxel destruction block.
+**This repo has no recorded sound effects.** The release's 90 recorded sounds are licensed for the game only, so they can't be passed on in a repo. The game runs without them: the build puts a moment of silence in place of each missing file, and the synthesised layers and the music still play. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every one: what it is, where the original came from, its licence, and how to drop a sound in. One command fills 67 of them with open sounds of the same names from Patch's voxel destruction block.
 
 ## How it's built
 

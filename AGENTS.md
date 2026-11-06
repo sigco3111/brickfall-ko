@@ -4,7 +4,7 @@ A first-person voxel demolition game on [Patch](https://patch.gg), in TypeScript
 
 ## Missing sounds
 
-The release's recorded sound effects aren't in this repo: their licences allow them inside the game but not in a repo. `public/audio/` holds only the music. The game plays silence for each missing take, so it builds and runs as it is, but blasts and impacts sound thin. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every file, its original source and licence, and how to drop sounds in. `node tools/open-sounds.mjs <clone of patch/voxel-destruction>` fills 67 of the 86 recorded names with open sounds. Never commit sounds whose licence bars passing them on.
+The release's recorded sound effects aren't in this repo: their licences allow them inside the game but not in a repo. `public/audio/` holds only the music. For each missing take, `vite.config.ts` serves and builds a tenth of a second of silence (`tools/silence.*`), so the game builds, runs and passes `pch check` as it is, but blasts and impacts sound thin. A file you put in `public/audio/` replaces its stand-in. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every file, its original source and licence, and how to drop sounds in. `node tools/open-sounds.mjs <clone of patch/voxel-destruction>` fills 67 of the 86 recorded names with open sounds. Never commit sounds whose licence bars passing them on.
 
 ## Run
 
@@ -46,4 +46,5 @@ Browser scripts you add should run muted and must not take the real mouse: launc
 | `src/hud.ts`, `src/replay.ts`, `src/calibrate.ts`, `src/boot.ts` | Screens, replays, GPU tuning, the WebGPU check |
 | `tools/audio-build/` | Rebuilds the original sound cuts from the Sonniss bundles (see MISSING_ASSETS.md) |
 | `tools/open-sounds.mjs` | Fills missing takes from Patch's open voxel destruction block |
+| `tools/silence.ogg`, `.m4a` | The stand-in for each missing take (`vite.config.ts`) |
 | `tests/`, `tests-gpu/`, `scripts/` | Node tests, GPU tests, the bench and the sky's sun finder |

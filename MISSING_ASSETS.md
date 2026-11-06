@@ -2,7 +2,7 @@
 
 Brickfall's release on Patch has 90 recorded sounds (180 files) that this repo leaves out. Their licences let them ship inside the game but not be handed on as files, so they can't sit in a repo anyone can download. Everything else the release has is here.
 
-**The game runs without them.** `src/audio.ts` skips a take whose file isn't there, so each missing sound is silence. The synthesised layers (sub thumps, cracks, rumble, steps, glass tinkle, alarms, engines) and the music still play. Explosions and impacts sound thin until you add sounds back, and the end-of-round whistle falls back to a beep.
+**The game runs without them.** For each take that's missing, `vite.config.ts` puts a tenth of a second of silence (`tools/silence.ogg`, `.m4a`) in its place, in `pnpm dev` and in the build, and `pnpm build` warns how many. So the game never asks for a file that isn't there, and `pch check` passes. The synthesised layers (sub thumps, cracks, rumble, steps, glass tinkle, alarms, engines) and the music still play; explosions, impacts and the round's horn and whistle are quiet until you add sounds back. Once a file is in `public/audio/`, the real one is used and its stand-in goes.
 
 ## The quick fix: open sounds of the same names
 
