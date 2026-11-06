@@ -15,6 +15,7 @@ import { CAP_MIN, chooseProfile, type DeviceProfile, deviceKey, measureFrames, m
 import { Chips } from './chips.ts';
 import { type BlastResult, blasts, type Hit, RADII, within } from './destruction.ts';
 import { type ContractCard, Hud, type Mode, type Settings, type Tool } from './hud.ts';
+import { type NavScreen, Pad, PadNav } from './pad.ts';
 import { Impacts } from './impacts.ts';
 import { buildLevel, type HeistSpec, type Level, LEVELS, lotsFor, SPAWNS } from './levels.ts';
 import { Loader } from './loader.ts';
@@ -143,7 +144,7 @@ let blownAt = -1;
 let fuseDelay = 0;
 
 // ---------- settings and progress ----------
-const settings: Settings = { sensitivity: 1, fov: 82, invertY: false, quality: 'high', graphics: 'auto', volume: 0.8, music: 0.6, shake: true, hour: 17.4, smoothing: false, dof: true, sunRays: true };
+const settings: Settings = { sensitivity: 1, fov: 82, invertY: false, quality: 'high', graphics: 'auto', volume: 0.8, music: 0.6, shake: true, hour: 17.4, smoothing: false, dof: true, sunRays: true, padSens: 1, padDead: 0.15 };
 try {
   Object.assign(settings, JSON.parse(localStorage.getItem('brickfall.settings') ?? '{}'));
 } catch {
@@ -287,6 +288,12 @@ function lockPointer(): void {
     freeLook = true;
     return;
   }
+  // On the pad there's no pointer to lock: play on without it (the next click takes it, as before)
+  if (pad.used) {
+    freeLook = true;
+    padLook = true;
+    return;
+  }
   try {
     const lock = canvas.requestPointerLock() as Promise<void> | undefined;
     lock?.catch(() => {
@@ -298,7 +305,7 @@ function lockPointer(): void {
 }
 document.addEventListener('pointerlockchange', () => {
   captured = document.pointerLockElement === canvas;
-  if (captured) freeLook = false;
+  if (captured) freeLook = padLook = false;
   canvas.style.cursor = captured ? 'none' : '';
   if (!captured && (phase === 'play' || phase === 'grace' || phase === 'intro' || phase === 'free') && !freeLook) setPaused(true);
   held = false;
@@ -387,8 +394,7 @@ addEventListener('keydown', (e) => {
   keys.add(e.code);
   // The sandbox's spawn bar: B opens it, a number puts that prop where the crosshair is
   if (mode === 'sandbox' && e.code === 'KeyB') {
-    spawnOpen = !spawnOpen;
-    hud.spawnBar(spawnOpen ? SPAWNS.map((s) => s.name) : null);
+    toggleSpawn();
     return;
   }
   if (spawnOpen && /^Digit[1-6]$/.test(e.code)) {
@@ -397,11 +403,7 @@ addEventListener('keydown', (e) => {
     hud.spawnBar(null);
     return;
   }
-  if (mode === 'sandbox' && e.code === 'KeyT') {
-    dayHour = HOURS[(HOURS.indexOf(dayHour) + 1) % HOURS.length];
-    setDayHour(dayHour);
-    hud.toast(`Time of day: ${Math.floor(dayHour)}:${String(Math.round((dayHour % 1) * 60)).padStart(2, '0')}`);
-  }
+  if (mode === 'sandbox' && e.code === 'KeyT') nextHour();
   if (e.code === 'KeyF' && (heistUse() || useMachine())) return;
   if (e.code === 'F5' || e.code === 'F9') {
     e.preventDefault();
@@ -419,19 +421,30 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Digit7') selectTool(PIPE);
   if (e.code === 'Digit8') selectTool(PLANK);
   if (e.code === 'Digit9' && VEHICLES) selectTool(CABLE);
-  if (e.code === 'KeyR') {
-    fuseDelay = DELAYS[(DELAYS.indexOf(fuseDelay) + 1) % DELAYS.length];
-    hud.toast(`Next charge fires ${fuseDelay ? `${fuseDelay} s after` : 'on'} the button`);
-    sounds.click();
-  }
+  if (e.code === 'KeyR') nextDelay();
   if (e.code === 'KeyQ' || e.code === 'KeyE') detonateAll();
-  if (e.code === 'KeyL') {
-    overlayOn = !overlayOn;
-    overlayAt = 0;
-    view.overlay.value = overlayOn ? 1 : 0;
-    hud.toast(overlayOn ? 'Load view on: storeys glow as they take load (L to hide)' : 'Load view off');
-  }
+  if (e.code === 'KeyL') toggleLoad();
 });
+function toggleSpawn(): void {
+  spawnOpen = !spawnOpen;
+  hud.spawnBar(spawnOpen ? SPAWNS.map((s) => s.name) : null);
+}
+function nextHour(): void {
+  dayHour = HOURS[(HOURS.indexOf(dayHour) + 1) % HOURS.length];
+  setDayHour(dayHour);
+  hud.toast(`Time of day: ${Math.floor(dayHour)}:${String(Math.round((dayHour % 1) * 60)).padStart(2, '0')}`);
+}
+function nextDelay(): void {
+  fuseDelay = DELAYS[(DELAYS.indexOf(fuseDelay) + 1) % DELAYS.length];
+  hud.toast(`Next charge fires ${fuseDelay ? `${fuseDelay} s after` : 'on'} the button`);
+  sounds.click();
+}
+function toggleLoad(): void {
+  overlayOn = !overlayOn;
+  overlayAt = 0;
+  view.overlay.value = overlayOn ? 1 : 0;
+  hud.toast(overlayOn ? 'Load view on: storeys glow as they take load (L to hide)' : 'Load view off');
+}
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => {
   keys.clear();
@@ -456,7 +469,8 @@ addEventListener('mousedown', (e) => {
     return;
   }
   if (!active()) return;
-  if (!captured && !freeLook) {
+  if (!captured && (!freeLook || padLook)) {
+    padLook = false;
     lockPointer();
     return;
   }
@@ -474,16 +488,194 @@ addEventListener(
   'wheel',
   (e) => {
     if (!active() || riding) return;
-    // (Past the locked ones)
-    let next = tool;
-    for (let k = 0; k < TOOLS.length; k++) {
-      next = (next + (e.deltaY > 0 ? 1 : TOOLS.length - 1)) % TOOLS.length;
-      if (!toolLocked(next)) break;
-    }
-    selectTool(next);
+    cycleTool(e.deltaY > 0 ? 1 : -1);
   },
   { passive: true },
 );
+/** The next tool along (1) or back (-1), past the locked ones. */
+function cycleTool(by: 1 | -1): void {
+  let next = tool;
+  for (let k = 0; k < TOOLS.length; k++) {
+    next = (next + (by > 0 ? 1 : TOOLS.length - 1)) % TOOLS.length;
+    if (!toolLocked(next)) break;
+  }
+  selectTool(next);
+}
+
+// The controller (pad.ts), read at the top of each frame. On foot the left stick moves and the right one looks, RT
+// uses the tool (held for the sledge and the jackhammer), LT or Y blows the charges, LB and RB change tools (held, the
+// tool wheel: the right stick picks, letting go takes it), X takes loot and gets into or out of a machine, A jumps,
+// B crouches, a left-stick click sprints until you stop, the D-pad's down changes the charge delay and up the load
+// view, Start pauses. In a machine: the left stick drives and turns (the crane: raises and swings the boom), A and B
+// lift and lower, RT works the arm, X climbs out. In the sandbox the View button opens the spawn bar (D-pad to pick,
+// A to spawn, B to close) and a right-stick click changes the time of day. A, B or Start skips the intro and the
+// replay. On the title, pause and results the pad moves a highlight over them (PadNav).
+const pad = new Pad({ deadzone: () => settings.padDead });
+const padNav = new PadNav(pad);
+const padIn = { forward: 0, right: 0, jump: false, crouch: false, lift: 0 };
+let padHeld = false;
+let padSprint = false;
+/** Playing without the pointer since the pad started or resumed: a click takes it. */
+let padLook = false;
+/** How long the look stick has been at its edge (it turns faster after a moment). */
+let padEdge = 0;
+/** A bumper held: since when, which way it steps, and the wheel's lit tool once it opens (-1: shut). */
+let bumper = { at: -1, by: 0 as -1 | 0 | 1, lit: -1 };
+/** The spawn bar's lit prop, on the pad. */
+let spawnAt = 0;
+const PAD_HELP = () =>
+  `<b>L stick</b> move · <b>R stick</b> look · {RT} use tool · {LB} {RB} switch, hold for the wheel · {A} jump · {B} crouch · {LS} sprint · {LT} / {Y} detonate · {Down} charge delay · {X} take loot, drive · {Up} load view · {Start} pause`;
+/** The keyboard's words in prompts and hints, and what the pad says instead. */
+const PAD_WORDS: [RegExp, string][] = [
+  [/<b>A<\/b>\/<b>D<\/b>/g, '<b>L stick</b> ←/→'],
+  [/<b>W<\/b>\/<b>S<\/b>/g, '<b>L stick</b> ↑/↓'],
+  [/<b>Space<\/b>\/<b>C<\/b>/g, '{A}/{B}'],
+  [/<b>[Hh]old click<\/b>/g, 'hold {RT}'],
+  [/Hold <b>Click<\/b>/g, 'Hold {RT}'],
+  [/<b>[Cc]lick<\/b>/g, '{RT}'],
+  [/<b>Right click<\/b> or <b>Q<\/b>/g, '{LT} or {Y}'],
+  [/<b>Q<\/b>/g, '{Y}'],
+  [/<b>F<\/b>/g, '{X}'],
+  [/<b>Esc<\/b>/g, '{Start}'],
+  [/<b>L<\/b>/g, '{Up}'],
+  [/<em>B to close<\/em>/g, '<em>{B} to close</em>'],
+  [/CLICK TO CLOSE/g, '{B} TO CLOSE'],
+  // (plain text: toasts, the modes' lines)
+  [/\(L to hide\)/g, '({Up} to hide)'],
+  [/\bB spawns/g, '{Back} spawns'],
+  [/\bT sets/g, '{RS} sets'],
+];
+const keyHelp = hud.help;
+hud.help = () => (pad.used ? pad.text(PAD_HELP()) : keyHelp());
+hud.words = (html, plain) => {
+  if (!pad.used) return html;
+  for (const [re, to] of PAD_WORDS) html = html.replace(re, to);
+  return pad.text(html, plain);
+};
+pad.onDevice = () => {
+  hud.ends = pad.used ? [pad.cap('LB'), pad.cap('RB')] : null;
+  hud.refreshWords();
+};
+// Unplugged (or flat) in a job: pause, as losing the pointer does; plugged back in, it carries on
+pad.onLost = () => {
+  if (paused || !(phase === 'play' || phase === 'grace' || phase === 'intro' || phase === 'free')) return;
+  if (document.pointerLockElement) document.exitPointerLock();
+  setPaused(true);
+};
+function padStep(now: number): void {
+  pad.poll();
+  padIn.forward = padIn.right = padIn.lift = 0;
+  padIn.jump = padIn.crouch = padHeld = false;
+  const wheelWas = bumper.lit;
+  const reset = () => {
+    padSprint = false;
+    bumper = { at: -1, by: 0, lit: -1 };
+    if (wheelWas >= 0) hud.wheel(null, toolLocked);
+  };
+  // The best moment's replay over the results: A, B or Start closes it
+  const replay = document.querySelector('.replayview');
+  if (replay) {
+    padNav.drive(null, now);
+    if (pad.pressed('A') || pad.pressed('B') || pad.pressed('Start')) {
+      replay.remove();
+      pad.swallow();
+    }
+    return reset();
+  }
+  const screen: NavScreen | null = paused
+    ? { root: hud.pause, back: () => setPaused(false), start: () => setPaused(false) }
+    : !hud.endScreen.hidden
+      ? { root: hud.endScreen, first: () => hud.endScreen.querySelector('.primary, .retry') }
+      : hud.titleOpen
+        ? {
+            root: hud.title,
+            first: () => hud.title.querySelector('.card.sel'),
+            start: () => {
+              lockPointer();
+              void startLevel(nextContract());
+            },
+          }
+        : null;
+  if (padNav.drive(screen, now)) return reset();
+  const inJob = phase === 'play' || phase === 'grace' || phase === 'intro' || phase === 'free';
+  if (inJob && pad.pressed('Start')) {
+    if (document.pointerLockElement) document.exitPointerLock();
+    setPaused(true);
+    return reset();
+  }
+  // The replay camera and the intro: skipped
+  if (cam.active && cam.kind === 'kill') {
+    if (pad.pressed('A') || pad.pressed('B')) cam.skip = true;
+    return reset();
+  }
+  if (phase === 'intro') {
+    if (pad.pressed('A') || pad.pressed('B')) {
+      game.introT = 99;
+      pad.swallow();
+    }
+    return reset();
+  }
+  if (!active()) return reset();
+  padIn.forward = pad.move.y;
+  padIn.right = pad.move.x;
+  padHeld = pad.held('RT');
+  if (pad.pressed('RT')) wantFire = true;
+  if (pad.pressed('X') && (heistUse() || useMachine())) return reset();
+  if (riding) {
+    padIn.lift = (pad.held('A') ? 1 : 0) - (pad.held('B') ? 1 : 0);
+    return reset();
+  }
+  // The sandbox's spawn bar, open: the D-pad picks, A spawns, B (or View) closes
+  if (spawnOpen) {
+    const n = SPAWNS.length;
+    if (pad.pressed('Left') || pad.pressed('Right')) {
+      spawnAt = (spawnAt + (pad.pressed('Right') ? 1 : n - 1)) % n;
+      hud.spawnBar(SPAWNS.map((s) => s.name), spawnAt);
+    }
+    if (pad.pressed('A')) {
+      spawnProp(SPAWNS[spawnAt].kind);
+      toggleSpawn();
+    } else if (pad.pressed('B') || pad.pressed('Back')) toggleSpawn();
+    return reset();
+  }
+  if (mode === 'sandbox' && pad.pressed('Back')) {
+    toggleSpawn();
+    if (spawnOpen) hud.spawnBar(SPAWNS.map((s) => s.name), spawnAt);
+  }
+  if (mode === 'sandbox' && pad.pressed('RS')) nextHour();
+  padIn.jump = pad.held('A');
+  padIn.crouch = pad.held('B');
+  if (pad.pressed('LS')) padSprint = !padSprint;
+  if (Math.hypot(pad.move.x, pad.move.y) < 0.3 || padIn.crouch) padSprint = false;
+  if (pad.pressed('LT') || pad.pressed('Y')) detonateAll();
+  if (pad.pressed('Down')) nextDelay();
+  if (pad.pressed('Up')) toggleLoad();
+  if (pad.pressed('Left')) cycleTool(-1);
+  if (pad.pressed('Right')) cycleTool(1);
+  // The bumpers: a tap steps through the tools; held a moment, the wheel opens and the right stick picks
+  if (pad.pressed('LB') || pad.pressed('RB')) bumper = { at: now, by: pad.pressed('LB') ? -1 : 1, lit: -1 };
+  if (bumper.at >= 0) {
+    const down = bumper.by < 0 ? pad.held('LB') : pad.held('RB');
+    if (down && bumper.lit < 0 && now - bumper.at > 250) bumper.lit = tool;
+    if (bumper.lit >= 0) {
+      const raw = Math.hypot(pad.look.x, pad.look.y) > 0.5 ? pad.look : Math.hypot(pad.move.x, -pad.move.y) > 0.5 ? { x: pad.move.x, y: -pad.move.y } : null;
+      if (raw) {
+        const n = TOOLS.length;
+        const a = Math.atan2(raw.x, -raw.y);
+        bumper.lit = (Math.round((a / (2 * Math.PI)) * n) + n) % n;
+      }
+      hud.wheel(bumper.lit, toolLocked);
+      padIn.forward = padIn.right = 0;
+    }
+    if (!down) {
+      if (bumper.lit >= 0) {
+        hud.wheel(null, toolLocked);
+        selectTool(bumper.lit);
+      } else cycleTool(bumper.by as 1 | -1);
+      bumper = { at: -1, by: 0, lit: -1 };
+    }
+  }
+}
 /** A lot's number as its mode's menu counts them (the heist lot is in Salvage's own list). */
 const lotNumber = (id: number) => lotsFor(mode === 'heist').indexOf(id) + 1;
 /** Whether there's a next lot in the menu, open to play. */
@@ -552,20 +744,30 @@ function input(): Input {
   const k = (...codes: string[]) => (codes.some((c) => keys.has(c)) ? 1 : 0);
   const clamp = (v: number) => Math.max(-1, Math.min(1, v));
   return {
-    forward: clamp(k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown')),
-    right: clamp(k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft')),
-    jump: keys.has('Space'),
-    sprint: k('ShiftLeft', 'ShiftRight') === 1,
-    crouch: k('KeyC', 'ControlLeft') === 1,
+    forward: clamp(k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') + padIn.forward),
+    right: clamp(k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft') + padIn.right),
+    jump: keys.has('Space') || padIn.jump,
+    sprint: k('ShiftLeft', 'ShiftRight') === 1 || padSprint,
+    crouch: k('KeyC', 'ControlLeft') === 1 || padIn.crouch,
     rise: 0,
     slow: false,
   };
 }
-function turn(): void {
+function turn(dt: number): void {
   const k = 0.0017 * settings.sensitivity;
   player.yaw -= look.x * k;
   player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - look.y * k * (settings.invertY ? -1 : 1)));
   look.x = look.y = 0;
+  // The right stick (not while it picks on the tool wheel): about 3 rad/s at the edge, up to half as fast again after
+  // a moment held there
+  const m = bumper.lit >= 0 ? 0 : Math.hypot(pad.look.x, pad.look.y);
+  padEdge = m > 0.9 ? padEdge + dt : 0;
+  if (m > 0) {
+    const rate = 3 * settings.padSens * (1 + 0.5 * Math.min(1, Math.max(0, (padEdge - 0.25) / 0.4))) * dt;
+    player.yaw -= pad.look.x * rate;
+    player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - pad.look.y * rate * 0.75 * (settings.invertY ? -1 : 1)));
+    hand.look((pad.look.x * rate) / 0.0017, (pad.look.y * rate * 0.75) / 0.0017);
+  }
 }
 
 // ---------- the world ----------
@@ -898,11 +1100,12 @@ function machineControls(m: Machine): Controls | null {
   const k = (...codes: string[]) => (codes.some((c) => keys.has(c)) ? 1 : 0);
   const d = new THREE.Vector3();
   view.camera.getWorldDirection(d);
+  const clamp = (v: number) => Math.max(-1, Math.min(1, v));
   return {
-    forward: k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown'),
-    turn: k('KeyA', 'ArrowLeft') - k('KeyD', 'ArrowRight'),
-    lift: k('Space') - k('KeyC', 'ControlLeft'),
-    action: held,
+    forward: clamp(k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') + padIn.forward),
+    turn: clamp(k('KeyA', 'ArrowLeft') - k('KeyD', 'ArrowRight') - padIn.right),
+    lift: clamp(k('Space') - k('KeyC', 'ControlLeft') + padIn.lift),
+    action: held || padHeld,
     eye: view.camera.position.clone(),
     dir: d,
   };
@@ -3803,6 +4006,7 @@ function tick(now: number): void {
   const dt = Math.max(0, Math.min((now - last) / 1000, 0.1));
   last = now;
   fps += (1 / Math.max(dt, 1e-3) - fps) * 0.05;
+  padStep(now);
   const playing = active();
 
   // Time: the replay camera slows the world, a hit-stop freezes it for a few hundredths
@@ -3839,7 +4043,7 @@ function tick(now: number): void {
     if (u >= 1) turning = null;
   }
   if (playing) {
-    turn();
+    turn(dt);
     cooldown -= dt;
     const move = input();
     const stride = Math.floor(player.walk / Math.PI);
@@ -3855,7 +4059,7 @@ function tick(now: number): void {
     const b = level.bounds;
     player.position.x = Math.max(-b, Math.min(b, player.position.x));
     player.position.y = Math.max(-b, Math.min(b, player.position.y));
-    if (player.onGround && Math.floor(player.walk / Math.PI) !== stride) sounds.step(keys.has('ShiftLeft'));
+    if (player.onGround && Math.floor(player.walk / Math.PI) !== stride) sounds.step(keys.has('ShiftLeft') || padSprint);
     if (player.landed > 4) {
       sounds.land(player.landed);
       dip = Math.min(0.25, player.landed * 0.02);
@@ -3866,7 +4070,7 @@ function tick(now: number): void {
       hud.chargeRing(0);
       hud.prompt(null);
     } else if (tool === SLEDGE) {
-      if (held && cooldown <= 0) {
+      if ((held || padHeld) && cooldown <= 0) {
         sledgeCharge = Math.min(1, sledgeCharge + dt / 0.6);
         if (sledgeCharge >= 1 && hand.charge < 1) sounds.blip(220, 0.05, 0.1, 'sawtooth');
       } else if (sledgeCharge > 0) {
@@ -3877,14 +4081,15 @@ function tick(now: number): void {
       hand.charge = sledgeCharge;
       hud.chargeRing(sledgeCharge);
     } else if (tool === JACK) {
-      hand.running = held;
-      sounds.jackMotor(held);
-      if (held && simTime - jackAt > TOOLS[JACK].cooldown) {
+      const on = held || padHeld;
+      hand.running = on;
+      sounds.jackMotor(on);
+      if (on && simTime - jackAt > TOOLS[JACK].cooldown) {
         jackAt = simTime;
         jackHit();
       }
       // The ring fills as it works through the spot
-      hud.chargeRing(held ? jackWork / JACK_BREAK : 0);
+      hud.chargeRing(on ? jackWork / JACK_BREAK : 0);
     } else {
       hud.chargeRing(0);
       if (wantFire && cooldown <= 0) {
@@ -3974,7 +4179,7 @@ function tick(now: number): void {
   const rumbling = simTime < rumbleUntil ? Math.min(1, rumbleUntil - simTime) * (settings.shake ? 1 : 0.15) : 0;
   const rumblePitch = rumbling * 0.0105 * (Math.sin(t * 37.7) * 0.6 + Math.sin(t * 23.1 + 1) * 0.4);
   dip *= Math.exp(-dt * 10);
-  let fov = settings.fov + (keys.has('ShiftLeft') && Math.hypot(player.velocity.x, player.velocity.y) > 6 ? 5 : 0);
+  let fov = settings.fov + ((keys.has('ShiftLeft') || padSprint) && Math.hypot(player.velocity.x, player.velocity.y) > 6 ? 5 : 0);
   // FOV kick: a spring back to rest
   fovVel += (-fovKick * 120 - fovVel * 16) * dt;
   fovKick += fovVel * dt;
@@ -4060,7 +4265,7 @@ function tick(now: number): void {
   pulse *= Math.exp(-dt * 7);
   view.pulse.value = 1 + pulse;
   const pace = Math.hypot(player.velocity.x, player.velocity.y);
-  hand.update(dt * (timeScale === 0 && hitstop > 0 ? 0.2 : 1), player.walk, player.onGround ? Math.min(1, pace / 9) : 0, keys.has('ShiftLeft') && pace > 6);
+  hand.update(dt * (timeScale === 0 && hitstop > 0 ? 0.2 : 1), player.walk, player.onGround ? Math.min(1, pace / 9) : 0, (keys.has('ShiftLeft') || padSprint) && pace > 6);
   view.glow = Math.max(0.35, (view as unknown as { bloomPass: { strength: { value: number } } }).bloomPass.strength.value - dt * 1.5);
   if (playing && !riding) {
     const a = aim(TOOLS[tool].reach);

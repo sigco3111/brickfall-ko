@@ -6,6 +6,7 @@ import '@fontsource/anton/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-700.css';
 import '@fontsource/inter/latin-800.css';
+import { PAD_CSS } from './pad.ts';
 
 export interface Tool {
   name: string;
@@ -27,6 +28,9 @@ export interface Settings {
   smoothing: boolean;
   dof: boolean;
   sunRays: boolean;
+  /** The controller: look speed and the sticks' deadzone. */
+  padSens: number;
+  padDead: number;
 }
 
 export interface ContractCard {
@@ -226,7 +230,22 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 .end .best { font: 800 12px/1 Inter, sans-serif; letter-spacing: 0.25em; color: var(--amber); min-height: 14px; }
 .end .btns { display: flex; gap: 8px; margin-top: 18px; }
 .end .btns .btn { flex: 1; }
-`;
+.pause .panel { max-height: 94vh; overflow-y: auto; }
+.pause .sect { margin: 16px 0 4px; font: 800 12px/1 Inter, sans-serif; letter-spacing: 0.16em; opacity: 0.6; }
+.hud .spawnbar span.on { background: var(--amber); color: #1b1006; }
+.hud .spawnbar span.on i { color: #1b1006; }
+.hud .tools .pe { align-self: center; font: 800 12px/1 Inter, sans-serif; }
+.hud .tools .pe b { display: inline-block; padding: 3px 7px; border-radius: 5px; background: rgba(255,255,255,0.18); }
+.hud .wheel { position: absolute; left: 50%; top: 50%; width: 380px; height: 380px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(10,11,15,0.25) 0 22%, rgba(10,11,15,0.72) 23%); }
+.hud .wheel[hidden] { display: none; }
+.hud .wheel .w { position: absolute; width: 74px; padding: 9px 4px 7px; transform: translate(-50%, -50%); border-radius: 12px; background: var(--ink); border: 1px solid rgba(255,255,255,0.14); text-align: center; transition: transform 120ms, border-color 120ms; }
+.hud .wheel .w.on { border-color: var(--amber); background: rgba(52,34,14,0.9); transform: translate(-50%, -50%) scale(1.14); }
+.hud .wheel .w.locked { opacity: 0.35; }
+.hud .wheel .w svg { width: 28px; height: 28px; fill: none; stroke: var(--cream); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.hud .wheel .w.on svg { stroke: var(--amber); }
+.hud .wheel .w div { font: 700 11px/1 Inter, sans-serif; margin-top: 4px; }
+.hud .wheel .mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 800 12px/1.3 Inter, sans-serif; letter-spacing: 0.1em; text-align: center; opacity: 0.8; }
+${PAD_CSS}`;
 
 /** The controls, for the title and the pause card (the number keys run to however many tools there are). */
 const HELP = (tools: number) => `<b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> use tool · <b>1</b>–<b>${tools}</b> / wheel switch · <b>Space</b> jump · <b>Shift</b> sprint · <b>Right click</b> / <b>Q</b> detonate · <b>R</b> charge delay · <b>F</b> take loot (Salvage) · <b>L</b> load view · <b>Esc</b> pause`;
@@ -262,6 +281,12 @@ export class Hud {
   onKeep: () => void = () => {};
   onSettings: () => void = () => {};
   onPick: (i: number) => void = () => {};
+  /** The words for the device in use: key names as they are, or the pad's buttons (`plain` for text that isn't HTML). */
+  words: (html: string, plain?: boolean) => string = (h) => h;
+  /** The controls line for the device in use. */
+  help: () => string = () => HELP(this.tools.length);
+  /** On the pad: the bumpers' caps at each end of the tool bar (null: the keyboard's numbers on the slots). */
+  ends: [string, string] | null = null;
 
   readonly tools: Tool[];
   readonly settings: Settings;
@@ -293,6 +318,7 @@ export class Hud {
     r.append(this.spawnEl);
     r.append(this.promptEl);
     r.append(this.machineEl);
+    r.append(this.wheelEl);
     for (const k of ['vignette', 'flash', 'pops', 'cross', 'ring', 'job', 'clock', 'score', 'combo', 'hint', 'tools', 'banner', 'toast', 'stats', 'cinecap'])
       this.el[k] = r.querySelector(`.${k}`) as HTMLElement;
     for (const t of tools) {
@@ -326,7 +352,7 @@ export class Hud {
     this.title.innerHTML = `<div class="wrap">
       <div class="logo d">Brick<span>fall</span></div>
       <div class="tag">${m.tag}${this.starTotal !== null ? ` <span class="total">★ ${this.starTotal}</span>` : ''}</div>
-      <div class="modes">${(Object.keys(MODES) as Mode[]).map((k) => `<button data-mode="${k}" class="${k === this.mode ? 'on' : ''}">${MODES[k].name}</button>`).join('')}<span class="what">${m.what}</span></div>
+      <div class="modes">${(Object.keys(MODES) as Mode[]).map((k) => `<button data-mode="${k}" class="${k === this.mode ? 'on' : ''}">${MODES[k].name}</button>`).join('')}<span class="what">${this.words(m.what)}</span></div>
       <div class="cards">${cards
         .map(
           (c, k) => `<button class="card${c.id === selected ? ' sel' : ''}${c.locked ? ' locked' : ''}" data-id="${c.id}"${c.locked ? ` data-locked="${c.locked}"` : ''}>
@@ -334,7 +360,7 @@ export class Hud {
           <div class="ft"><span class="st">${stars(c.stars)}</span><span>${c.locked ? `<span class="lk">LOCKED · ${c.locked} ★</span>` : c.best ? `BEST ${c.best.toLocaleString()}` : '<span class="go">START</span>'}</span></div></button>`,
         )
         .join('')}</div>
-      <div class="row2"><span class="keys">${HELP(this.tools.length)}</span><span class="loading">${loading ?? ''}</span></div>
+      <div class="row2"><span class="keys">${this.help()}</span><span class="loading">${loading ?? ''}</span></div>
     </div>`;
     this.title.querySelectorAll<HTMLButtonElement>('.card').forEach((b) =>
       b.addEventListener('click', () => {
@@ -375,7 +401,7 @@ export class Hud {
     const s = this.settings;
     this.pause.innerHTML = `<div class="panel">
       <h2 class="d">Paused</h2>
-      <p class="help">${HELP(this.tools.length)}</p>
+      <p class="help">${this.help()}</p>
       <div class="row"><span>Look sensitivity</span><input type="range" name="sensitivity" min="0.2" max="3" step="0.05"></div>
       <div class="row"><span>Field of view</span><input type="range" name="fov" min="60" max="110" step="1"></div>
       <div class="row"><span>Sound</span><input type="range" name="volume" min="0" max="1" step="0.05"></div>
@@ -383,10 +409,13 @@ export class Hud {
       <div class="row"><span>Screen shake</span><input type="checkbox" name="shake"></div>
       <div class="row"><span>Invert look</span><input type="checkbox" name="invertY"></div>
       <div class="row"><span>Graphics</span><select name="graphics"><option value="auto">Auto (tuned)</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+      <div class="sect">CONTROLLER</div>
+      <div class="row"><span>Stick sensitivity</span><input type="range" name="padSens" min="0.2" max="3" step="0.05"></div>
+      <div class="row"><span>Stick deadzone</span><input type="range" name="padDead" min="0.04" max="0.4" step="0.01"></div>
       <div class="btns"><button class="btn primary resume">RESUME</button><button class="btn restart">RESTART</button><button class="btn quit">CONTRACTS</button></div>
     </div>`;
     const input = (name: string) => this.pause.querySelector(`[name=${name}]`) as HTMLInputElement;
-    for (const name of ['sensitivity', 'fov', 'volume', 'music'] as const) {
+    for (const name of ['sensitivity', 'fov', 'volume', 'music', 'padSens', 'padDead'] as const) {
       input(name).value = String(s[name]);
       input(name).addEventListener('input', () => {
         s[name] = Number(input(name).value);
@@ -413,6 +442,51 @@ export class Hud {
   showPause(on: boolean): void {
     this.pause.hidden = !on;
   }
+  /** The device in use changed: the controls lines, prompts and tool keys follow it. */
+  refreshWords(): void {
+    const keys = this.title.querySelector('.keys');
+    if (keys) keys.innerHTML = this.help();
+    const what = this.title.querySelector('.what');
+    if (what) what.innerHTML = this.words(MODES[this.mode].what);
+    const help = this.pause.querySelector('.help');
+    if (help) help.innerHTML = this.help();
+    this.hint(this.hintRaw);
+    const p = this.promptHtml;
+    this.promptHtml = null;
+    this.prompt(p);
+    if (!this.machineEl.hidden) this.machine(this.machineRaw);
+    if (!this.spawnEl.hidden) this.spawnBar(this.spawnItems, this.spawnAt);
+    this.slots.forEach((sl, k) => ((sl.querySelector('.k') as HTMLElement).textContent = this.ends ? '' : this.tools[k].key));
+    this.el.tools.querySelectorAll('.pe').forEach((e) => e.remove());
+    if (this.ends) {
+      this.el.tools.insertAdjacentHTML('afterbegin', `<span class="pe">${this.ends[0]}</span>`);
+      this.el.tools.insertAdjacentHTML('beforeend', `<span class="pe">${this.ends[1]}</span>`);
+    }
+    const close = document.querySelector('.replayview .close');
+    if (close) close.innerHTML = this.words('CLICK TO CLOSE');
+  }
+  /** The tool wheel (held bumper on the pad): the tools round a circle, `at` lit; null hides it. */
+  wheel(at: number | null, locked: (i: number) => boolean): void {
+    const w = this.wheelEl;
+    w.hidden = at === null;
+    if (at === null) return;
+    if (!w.childElementCount) {
+      const n = this.tools.length;
+      w.innerHTML =
+        this.tools.map((t, k) => `<div class="w" style="left:${50 + 38 * Math.sin((k / n) * 2 * Math.PI)}%;top:${50 - 38 * Math.cos((k / n) * 2 * Math.PI)}%">${t.icon}<div>${t.name}</div></div>`).join('') + '<div class="mid"></div>';
+    }
+    w.querySelectorAll('.w').forEach((e, k) => {
+      e.classList.toggle('on', k === at);
+      e.classList.toggle('locked', locked(k));
+    });
+    (w.querySelector('.mid') as HTMLElement).innerHTML = this.words('TOOLS<br>let go to pick');
+  }
+  private readonly wheelEl = (() => {
+    const d = document.createElement('div');
+    d.className = 'wheel';
+    d.hidden = true;
+    return d;
+  })();
 
   // ---------- end ----------
   showEnd(r: EndResult | null): void {
@@ -436,7 +510,7 @@ export class Hud {
       this.endScreen.querySelector('.watch')?.addEventListener('click', () => {
         const v = document.createElement('div');
         v.className = 'replayview';
-        v.innerHTML = `<video src="${replay.url}" autoplay loop muted playsinline></video><div class="cap d">${replay.label}</div><div class="close">CLICK TO CLOSE</div>`;
+        v.innerHTML = `<video src="${replay.url}" autoplay loop muted playsinline></video><div class="cap d">${replay.label}</div><div class="close">${this.words('CLICK TO CLOSE')}</div>`;
         v.addEventListener('click', () => v.remove());
         document.body.append(v);
       });
@@ -487,7 +561,7 @@ export class Hud {
     if (html === this.promptHtml) return;
     this.promptHtml = html;
     this.promptEl.hidden = !html;
-    if (html) this.promptEl.innerHTML = html;
+    if (html) this.promptEl.innerHTML = this.words(html);
   }
   private promptHtml: string | null = null;
   private readonly promptEl = (() => {
@@ -498,21 +572,27 @@ export class Hud {
   })();
   /** In a machine: its controls along the bottom in place of the tools (null: on foot). */
   machine(html: string | null): void {
+    this.machineRaw = html;
     this.machineEl.hidden = !html;
-    if (html) this.machineEl.innerHTML = html;
+    if (html) this.machineEl.innerHTML = this.words(html);
     this.root.classList.toggle('riding', !!html);
   }
+  private machineRaw: string | null = null;
   private readonly machineEl = (() => {
     const d = document.createElement('div');
     d.className = 'machinebar';
     d.hidden = true;
     return d;
   })();
-  /** The sandbox's spawn bar: the props by number, or null to hide it. */
-  spawnBar(items: string[] | null): void {
+  /** The sandbox's spawn bar: the props by number, or null to hide it (`at`: the one lit, on the pad). */
+  spawnBar(items: string[] | null, at = -1): void {
+    this.spawnItems = items;
+    this.spawnAt = at;
     this.spawnEl.hidden = !items;
-    if (items) this.spawnEl.innerHTML = `<b>SPAWN</b>${items.map((n, k) => `<span><i>${k + 1}</i>${n}</span>`).join('')}<em>B to close</em>`;
+    if (items) this.spawnEl.innerHTML = this.words(`<b>SPAWN</b>${items.map((n, k) => `<span class="${k === at ? 'on' : ''}"><i>${k + 1}</i>${n}</span>`).join('')}<em>B to close</em>`);
   }
+  private spawnItems: string[] | null = null;
+  private spawnAt = -1;
   private readonly spawnEl = (() => {
     const d = document.createElement('div');
     d.className = 'spawnbar';
@@ -587,8 +667,10 @@ export class Hud {
     (s.querySelector('.cool i') as HTMLElement).style.width = `${Math.round(Math.min(1, ready) * 100)}%`;
   }
   hint(html: string): void {
-    this.el.hint.innerHTML = html;
+    this.hintRaw = html;
+    this.el.hint.innerHTML = this.words(html);
   }
+  private hintRaw = '';
   aim(on: boolean): void {
     this.el.cross.classList.toggle('hit', on);
   }
@@ -637,7 +719,7 @@ export class Hud {
     this.el.cinecap.textContent = caption;
   }
   toast(text: string): void {
-    this.el.toast.textContent = text;
+    this.el.toast.textContent = this.words(text, true);
     this.el.toast.style.opacity = '1';
     clearTimeout(this.toastTimer);
     this.toastTimer = window.setTimeout(() => (this.el.toast.style.opacity = '0'), 1600);

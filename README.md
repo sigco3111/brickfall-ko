@@ -31,6 +31,8 @@ pnpm build        # makes dist/, the game as Patch serves it
 
 Controls: WASD move, mouse look (click to capture, Esc to pause), left click use the tool, 1 to 8 or the wheel switch tools, right click or Q blow the charges, R set a charge's delay, L the load view, Space jump, Shift sprint, C crouch, F take the loot (Salvage). In the Sandbox, B spawns props and T sets the time of day.
 
+A controller works too (standard mapping; the words on screen follow it, with Xbox or PlayStation names): left stick to move, right stick to look, RT to use the tool (hold it for the sledge and the jackhammer), LT or Y to blow the charges, LB and RB to change tools (hold one for the tool wheel: the right stick picks, let go to take it), the D-pad's left and right too, down for a charge's delay, up for the load view, X to take the loot, A to jump, B to crouch, a left-stick click to sprint, Start to pause. A or B skips the intro and the replay. In the Sandbox, View opens the spawn bar (D-pad to pick, A to spawn, B to close) and a right-stick click sets the time of day. On the menus the D-pad or left stick moves, A presses, B goes back and left/right moves a slider or a list. The pause card has stick sensitivity and deadzone. Unplugging the pad mid-job pauses. The pad code is `src/pad.ts`, the same file as Siege's.
+
 `AGENTS.md` says how to check and change it, and where things live.
 
 ## Licence
