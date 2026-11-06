@@ -1,0 +1,15 @@
+{
+  "project": "blendi/brickfall",
+  "version": "1.6.1",
+  "channel": "public",
+  "files": "dist",
+  "recipe": {
+    "mode": "browser",
+    "launch": { "kind": "browser", "entry": "index.html", "component": "main" },
+    "components": [{ "id": "main", "file": "", "kind": "main", "label": "Main files" }],
+    "test": {
+      "checks": ["webgpu", "voxels-break", "score", "frame-rate"],
+      "minutes": 1
+    }
+  }
+}

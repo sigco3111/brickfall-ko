@@ -1,0 +1,2496 @@
+[
+ {
+  "name": "cannon_body",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Bluezone - Tank - Explosion Sound Effects/Bluezone_BC0271_tank_artillery_cannon_shot_012.wav",
+  "cut": [
+   0,
+   2.4
+  ],
+  "gainDb": 2.4,
+  "before": {
+   "peakDb": -0.3,
+   "lufsMmax": -11.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -21.8,
+   "crestDb": 8.7
+  },
+  "after": {
+   "peakDb": -1.4,
+   "truePeakDb": -1.3,
+   "rmsDb": -11.9,
+   "lufsMmax": -11.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.4
+  },
+  "bytes": 17836
+ },
+ {
+  "name": "cannon_report",
+  "take": 1,
+  "kind": "tail",
+  "source": "2018/Lukas Tvrdon - Distant Blast/Distant Blast 17.wav",
+  "cut": [
+   0,
+   3
+  ],
+  "gainDb": -5.9,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -9.9,
+   "integrated": -14.06,
+   "clipped": 0,
+   "floorDb": -85.3,
+   "crestDb": 10.9
+  },
+  "after": {
+   "peakDb": -5.8,
+   "truePeakDb": -5.8,
+   "rmsDb": -25.2,
+   "lufsMmax": -15.9,
+   "integrated": -19.96,
+   "clipped": 0,
+   "duration": 3
+  },
+  "bytes": 34017
+ },
+ {
+  "name": "cannon_report",
+  "take": 2,
+  "kind": "tail",
+  "source": "2018/Lukas Tvrdon - Distant Blast/Distant Blast 26.wav",
+  "cut": [
+   0,
+   3.6
+  ],
+  "gainDb": -8.8,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -5.7,
+   "integrated": -11.25,
+   "clipped": 0,
+   "floorDb": -67.6,
+   "crestDb": 7.5
+  },
+  "after": {
+   "peakDb": -8.4,
+   "truePeakDb": -8.4,
+   "rmsDb": -22.8,
+   "lufsMmax": -14.5,
+   "integrated": -19.98,
+   "clipped": 0,
+   "duration": 3.6
+  },
+  "bytes": 34051
+ },
+ {
+  "name": "clack",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/3maze - FINAL IMPACT/metal_hit_004.wav",
+  "cut": [
+   0,
+   0.25
+  ],
+  "gainDb": 2.1,
+  "before": {
+   "peakDb": 1.9,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 37,
+   "floorDb": -21.8,
+   "crestDb": 15.8
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.7,
+   "rmsDb": -15,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.25
+  },
+  "bytes": 6915
+ },
+ {
+  "name": "clack",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/SoundBits - Just Impacts - Extension II/Misc_Hits_118.wav",
+  "cut": [
+   0,
+   0.25
+  ],
+  "gainDb": 3.8,
+  "before": {
+   "peakDb": 0.2,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 1,
+   "floorDb": -25.6,
+   "crestDb": 16.3
+  },
+  "after": {
+   "peakDb": -1.3,
+   "truePeakDb": -1.2,
+   "rmsDb": -16.2,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.25
+  },
+  "bytes": 6422
+ },
+ {
+  "name": "boom",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Gamemaster Audio -  Explosion Sound Pack/explosion_large_08.wav",
+  "cut": [
+   0,
+   3.2
+  ],
+  "gainDb": 0.9,
+  "before": {
+   "peakDb": 0,
+   "lufsMmax": -8.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -48.2,
+   "crestDb": 5.9
+  },
+  "after": {
+   "peakDb": -1.1,
+   "truePeakDb": -1.1,
+   "rmsDb": -14.1,
+   "lufsMmax": -10.5,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 3.2
+  },
+  "bytes": 26647
+ },
+ {
+  "name": "boom",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2018/Gamemaster Audio - Guns, Bullets and Explosions/explosion_large_07.wav",
+  "cut": [
+   0,
+   2.5
+  ],
+  "gainDb": 2.6,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -10.6,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -62,
+   "crestDb": 7.9
+  },
+  "after": {
+   "peakDb": -1.4,
+   "truePeakDb": -1.3,
+   "rmsDb": -12.1,
+   "lufsMmax": -10.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.5
+  },
+  "bytes": 23501
+ },
+ {
+  "name": "boom",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2020/Stefano Cremona - Explosions/DeepExplosion02.wav",
+  "cut": [
+   0,
+   3.6
+  ],
+  "gainDb": 1.2,
+  "before": {
+   "peakDb": -0.1,
+   "lufsMmax": -9.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -53.8,
+   "crestDb": 7.3
+  },
+  "after": {
+   "peakDb": -1.3,
+   "truePeakDb": -1.3,
+   "rmsDb": -13.6,
+   "lufsMmax": -10.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 3.6
+  },
+  "bytes": 27442
+ },
+ {
+  "name": "boom",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2020/Bluezone - Tank - Explosion Sound Effects/Bluezone_BC0271_explosion_outdoors_large_005.wav",
+  "cut": [
+   0,
+   3.2
+  ],
+  "gainDb": 3.4,
+  "before": {
+   "peakDb": -0.6,
+   "lufsMmax": -11.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -55.6,
+   "crestDb": 9.2
+  },
+  "after": {
+   "peakDb": -1.2,
+   "truePeakDb": -1.2,
+   "rmsDb": -14.8,
+   "lufsMmax": -10.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 3.2
+  },
+  "bytes": 30961
+ },
+ {
+  "name": "boom_tail",
+  "take": 1,
+  "kind": "tail",
+  "source": "2018/Lukas Tvrdon - Distant Blast/Distant Blast 05.wav",
+  "cut": [
+   0.2,
+   6
+  ],
+  "gainDb": -5.1,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -8.5,
+   "integrated": -15.9,
+   "clipped": 0,
+   "floorDb": -106,
+   "crestDb": 7.9
+  },
+  "after": {
+   "peakDb": -4.9,
+   "truePeakDb": -4.9,
+   "rmsDb": -23.3,
+   "lufsMmax": -13.7,
+   "integrated": -20.99,
+   "clipped": 0,
+   "duration": 6
+  },
+  "bytes": 54021
+ },
+ {
+  "name": "boom_tail",
+  "take": 2,
+  "kind": "tail",
+  "source": "2018/Lukas Tvrdon - Distant Blast/Distant Blast 38.wav",
+  "cut": [
+   0.2,
+   6.5
+  ],
+  "gainDb": -9.4,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -6.8,
+   "integrated": -11.61,
+   "clipped": 0,
+   "floorDb": -110.3,
+   "crestDb": 9.3
+  },
+  "after": {
+   "peakDb": -9,
+   "truePeakDb": -9,
+   "rmsDb": -28.5,
+   "lufsMmax": -16.3,
+   "integrated": -21,
+   "clipped": 0,
+   "duration": 6.5
+  },
+  "bytes": 67558
+ },
+ {
+  "name": "steel_burst",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Heavy Metal Impact Sound Effects/Bluezone_BC0251_heavy_metal_impact_steel_barrel_01.wav",
+  "cut": [
+   0,
+   2.2
+  ],
+  "gainDb": -0.4,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -11.6,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -44.7,
+   "crestDb": 9.1
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -15.3,
+   "lufsMmax": -12.5,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.2
+  },
+  "bytes": 20646
+ },
+ {
+  "name": "steel_burst",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Heavy Metal Impact Sound Effects/Bluezone_BC0251_heavy_metal_impact_large_tank_01_03.wav",
+  "cut": [
+   0,
+   2.6
+  ],
+  "gainDb": -1,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -11,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -38.3,
+   "crestDb": 9.7
+  },
+  "after": {
+   "peakDb": -1.2,
+   "truePeakDb": -1.2,
+   "rmsDb": -17.9,
+   "lufsMmax": -12.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.6
+  },
+  "bytes": 22258
+ },
+ {
+  "name": "hit_brick",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_SOURCE_16 Impact brick rock dirt gravel single hit.wav",
+  "cut": [
+   0,
+   1.2
+  ],
+  "gainDb": 5.1,
+  "before": {
+   "peakDb": -1.1,
+   "lufsMmax": -16.1,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -66.5,
+   "crestDb": 14
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.6,
+   "rmsDb": -16.8,
+   "lufsMmax": -15.1,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.2
+  },
+  "bytes": 17495
+ },
+ {
+  "name": "hit_brick",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_SOURCE_61 Impact brick rock dirt gravel single hit.wav",
+  "cut": [
+   0,
+   1.4
+  ],
+  "gainDb": 5.5,
+  "before": {
+   "peakDb": -1.5,
+   "lufsMmax": -18.6,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -70.5,
+   "crestDb": 17
+  },
+  "after": {
+   "peakDb": -1.5,
+   "truePeakDb": -1.2,
+   "rmsDb": -21.8,
+   "lufsMmax": -17.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.4
+  },
+  "bytes": 20946
+ },
+ {
+  "name": "hit_brick",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2018/Soundrangers - Foley Elements Rocks, Dirt And Stone/boulder_impact_on_stones_14.wav",
+  "cut": [
+   0,
+   1
+  ],
+  "gainDb": 3.4,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -14.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -38.9,
+   "crestDb": 11.5
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -16.6,
+   "lufsMmax": -14.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1
+  },
+  "bytes": 14955
+ },
+ {
+  "name": "hit_brick_big",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_DESIGNED_IMPACT_48 Impact brick rock dirt gravel designed multi LFE.wav",
+  "cut": [
+   0,
+   2.2
+  ],
+  "gainDb": -0.6,
+  "before": {
+   "peakDb": -0.3,
+   "lufsMmax": -8.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -76.4,
+   "crestDb": 8.4
+  },
+  "after": {
+   "peakDb": -1.1,
+   "truePeakDb": -1.1,
+   "rmsDb": -16.5,
+   "lufsMmax": -9.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.2
+  },
+  "bytes": 28385
+ },
+ {
+  "name": "hit_brick_big",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_DESIGNED_IMPACT_116 Impact brick rock dirt gravel designed multi LFE.wav",
+  "cut": [
+   0,
+   2.6
+  ],
+  "gainDb": 0.2,
+  "before": {
+   "peakDb": -0.2,
+   "lufsMmax": -9.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -67.6,
+   "crestDb": 9.2
+  },
+  "after": {
+   "peakDb": -0.7,
+   "truePeakDb": -0.4,
+   "rmsDb": -16,
+   "lufsMmax": -10.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.6
+  },
+  "bytes": 32686
+ },
+ {
+  "name": "hit_brick_big",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Rocky Impacts/PM_RI_Designed_7 Rocks Impact Hit Big LFE Heavy Designed.wav",
+  "cut": [
+   0,
+   1.5
+  ],
+  "gainDb": 2.7,
+  "before": {
+   "peakDb": 0.1,
+   "lufsMmax": -11.7,
+   "integrated": null,
+   "clipped": 2,
+   "floorDb": -59,
+   "crestDb": 12.1
+  },
+  "after": {
+   "peakDb": -0.2,
+   "truePeakDb": 0,
+   "rmsDb": -16.9,
+   "lufsMmax": -12.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.5
+  },
+  "bytes": 19261
+ },
+ {
+  "name": "hit_wood",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Tools and Wood/Small Wood Pile, Smash.wav",
+  "cut": [
+   0,
+   1.2
+  ],
+  "gainDb": 2,
+  "before": {
+   "peakDb": 0.1,
+   "lufsMmax": -14,
+   "integrated": null,
+   "clipped": 2,
+   "floorDb": -74.1,
+   "crestDb": 14.6
+  },
+  "after": {
+   "peakDb": -0.8,
+   "truePeakDb": -0.2,
+   "rmsDb": -20.6,
+   "lufsMmax": -15.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.2
+  },
+  "bytes": 14382
+ },
+ {
+  "name": "hit_wood",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Wood Sound Effects/Bluezone_BC0254_wood_crushing_branches_001_001.wav",
+  "cut": [
+   0,
+   0.8
+  ],
+  "gainDb": 4.4,
+  "before": {
+   "peakDb": -0.4,
+   "lufsMmax": -21.6,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -46.8,
+   "crestDb": 25.2
+  },
+  "after": {
+   "peakDb": -1.5,
+   "truePeakDb": -0.8,
+   "rmsDb": -26.9,
+   "lufsMmax": -21.5,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.8
+  },
+  "bytes": 13035
+ },
+ {
+  "name": "hit_wood",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Tools and Wood/Wooden Tearing 09.wav",
+  "cut": [
+   0,
+   0.6
+  ],
+  "gainDb": 3.6,
+  "before": {
+   "peakDb": 0.4,
+   "lufsMmax": -19.3,
+   "integrated": null,
+   "clipped": 1,
+   "floorDb": -29.2,
+   "crestDb": 21.7
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -0.1,
+   "rmsDb": -23.9,
+   "lufsMmax": -18.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.6
+  },
+  "bytes": 11444
+ },
+ {
+  "name": "hit_metal",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Heavy Metal Impact Sound Effects/Bluezone_BC0251_heavy_metal_impact_metal_plate_medium.wav",
+  "cut": [
+   0,
+   2
+  ],
+  "gainDb": -3.5,
+  "before": {
+   "peakDb": -0.3,
+   "lufsMmax": -8.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -49.5,
+   "crestDb": 8
+  },
+  "after": {
+   "peakDb": -3.2,
+   "truePeakDb": -3.2,
+   "rmsDb": -16.6,
+   "lufsMmax": -12.1,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2
+  },
+  "bytes": 16054
+ },
+ {
+  "name": "hit_metal",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/SoundBits - Just Impacts - Extension II/Metal_Hit_Crash_199.wav",
+  "cut": [
+   0,
+   2.2
+  ],
+  "gainDb": -1.7,
+  "before": {
+   "peakDb": -0.5,
+   "lufsMmax": -10.3,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -77.5,
+   "crestDb": 7.4
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.6,
+   "rmsDb": -17.3,
+   "lufsMmax": -12,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.2
+  },
+  "bytes": 20308
+ },
+ {
+  "name": "hit_glass",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Chris Skyes - Shards Broken Glass/Window,Small,Break,Medium Impact,Large Amount of Clinking Pieces.wav",
+  "cut": [
+   0,
+   1.35
+  ],
+  "gainDb": 3.9,
+  "before": {
+   "peakDb": -6.6,
+   "lufsMmax": -17.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -50.2,
+   "crestDb": 13.8
+  },
+  "after": {
+   "peakDb": -2.1,
+   "truePeakDb": -1.8,
+   "rmsDb": -22.2,
+   "lufsMmax": -14.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.35
+  },
+  "bytes": 18592
+ },
+ {
+  "name": "hit_glass",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/Chris Skyes - Shards Broken Glass/Glass,Shards,Smash,Medium Impact,Lots of Large Shards.wav",
+  "cut": [
+   0,
+   0.9
+  ],
+  "gainDb": 1.1,
+  "before": {
+   "peakDb": -6.8,
+   "lufsMmax": -15.1,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -58.6,
+   "crestDb": 12.7
+  },
+  "after": {
+   "peakDb": -4.2,
+   "truePeakDb": -3.9,
+   "rmsDb": -21.1,
+   "lufsMmax": -14.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.9
+  },
+  "bytes": 13585
+ },
+ {
+  "name": "hit_glass",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2019/Airborne Sound - Elements Glass/Glass,Plate Glass,Thick,Break,Topple,Schoeps.wav",
+  "cut": [
+   0,
+   2.2
+  ],
+  "gainDb": 12.2,
+  "before": {
+   "peakDb": -8.2,
+   "lufsMmax": -27.8,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -105.7,
+   "crestDb": 19.3
+  },
+  "after": {
+   "peakDb": -2.2,
+   "truePeakDb": -1.7,
+   "rmsDb": -26.6,
+   "lufsMmax": -17.5,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.2
+  },
+  "bytes": 23659
+ },
+ {
+  "name": "thud",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/3maze - FINAL IMPACT/layered_material_hit_035.wav",
+  "cut": [
+   0,
+   0.9
+  ],
+  "gainDb": -2.6,
+  "before": {
+   "peakDb": -0.2,
+   "lufsMmax": -8.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -68.4,
+   "crestDb": 10.9
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -2,
+   "rmsDb": -17.3,
+   "lufsMmax": -11.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.9
+  },
+  "bytes": 11395
+ },
+ {
+  "name": "thud",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2016/3maze - High Impact/med_dark_001.wav",
+  "cut": [
+   0,
+   1
+  ],
+  "gainDb": 5.8,
+  "before": {
+   "peakDb": -1.8,
+   "lufsMmax": -17.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -20.1,
+   "crestDb": 10.5
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -10.8,
+   "lufsMmax": -13.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1
+  },
+  "bytes": 7893
+ },
+ {
+  "name": "debris_small",
+  "take": 1,
+  "kind": "tail",
+  "source": "2018/Soundrangers - Foley Elements Rocks, Dirt And Stone/brick_impact_debris_02.wav",
+  "cut": [
+   0,
+   0.84
+  ],
+  "gainDb": 4.1,
+  "before": {
+   "peakDb": -0.1,
+   "lufsMmax": -23.6,
+   "integrated": -26.87,
+   "clipped": 0,
+   "floorDb": -83.9,
+   "crestDb": 22.5
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -1.9,
+   "rmsDb": -26.7,
+   "lufsMmax": -22.9,
+   "integrated": -26.03,
+   "clipped": 0,
+   "duration": 0.83
+  },
+  "bytes": 12030
+ },
+ {
+  "name": "debris_small",
+  "take": 2,
+  "kind": "tail",
+  "source": "2017/Mechanical Wave - Rock,Brick and Dirt - Part 02/Hit Rock into Gravel_RBDII 06.wav",
+  "cut": [
+   0,
+   0.99
+  ],
+  "gainDb": 6.9,
+  "before": {
+   "peakDb": -2.9,
+   "lufsMmax": -22.6,
+   "integrated": -27.37,
+   "clipped": 0,
+   "floorDb": -73,
+   "crestDb": 21
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.4,
+   "rmsDb": -26.1,
+   "lufsMmax": -19.5,
+   "integrated": -22.73,
+   "clipped": 0,
+   "duration": 0.89
+  },
+  "bytes": 12529
+ },
+ {
+  "name": "debris_small",
+  "take": 3,
+  "kind": "tail",
+  "source": "2020/Bluezone - Tank - Explosion Sound Effects/Bluezone_BC0271_debris_falling_rock_dust_002.wav",
+  "cut": [
+   0,
+   2.4
+  ],
+  "gainDb": 6.6,
+  "before": {
+   "peakDb": -2.6,
+   "lufsMmax": -26.5,
+   "integrated": -28.58,
+   "clipped": 0,
+   "floorDb": -85.7,
+   "crestDb": 16.1
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -1.9,
+   "rmsDb": -26.7,
+   "lufsMmax": -22.1,
+   "integrated": -23.49,
+   "clipped": 0,
+   "duration": 2.38
+  },
+  "bytes": 32501
+ },
+ {
+  "name": "debris_mid",
+  "take": 1,
+  "kind": "tail",
+  "source": "2016/Alexander Kopeikin - Rocks/rock tumble down debris long 06.wav",
+  "cut": [
+   0,
+   5.2
+  ],
+  "gainDb": 2.9,
+  "before": {
+   "peakDb": -2.4,
+   "lufsMmax": -14.8,
+   "integrated": -21.85,
+   "clipped": 0,
+   "floorDb": -93.8,
+   "crestDb": 11.6
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.6,
+   "rmsDb": -21.7,
+   "lufsMmax": -12.4,
+   "integrated": -19.19,
+   "clipped": 0,
+   "duration": 5.18
+  },
+  "bytes": 139962
+ },
+ {
+  "name": "debris_mid",
+  "take": 2,
+  "kind": "tail",
+  "source": "2016/Alexander Kopeikin - Rocks/soil and dirt debris heavy 13.wav",
+  "cut": [
+   0,
+   2.35
+  ],
+  "gainDb": 0.7,
+  "before": {
+   "peakDb": -0.2,
+   "lufsMmax": -13.2,
+   "integrated": -19.66,
+   "clipped": 0,
+   "floorDb": -68.1,
+   "crestDb": 12.4
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -21.2,
+   "lufsMmax": -13.6,
+   "integrated": -19.37,
+   "clipped": 0,
+   "duration": 2.33
+  },
+  "bytes": 66858
+ },
+ {
+  "name": "debris_mid",
+  "take": 3,
+  "kind": "tail",
+  "source": "2017/Mechanical Wave - Rock,Brick and Dirt - Part 02/Crumbling Rock Slide_RBDII 07.wav",
+  "cut": [
+   0,
+   4.4
+  ],
+  "gainDb": 0.4,
+  "before": {
+   "peakDb": 0.7,
+   "lufsMmax": -14.3,
+   "integrated": -19.38,
+   "clipped": 28,
+   "floorDb": -106.4,
+   "crestDb": 23.8
+  },
+  "after": {
+   "peakDb": -2.3,
+   "truePeakDb": -1,
+   "rmsDb": -27.3,
+   "lufsMmax": -15.1,
+   "integrated": -19.78,
+   "clipped": 0,
+   "duration": 4.4
+  },
+  "bytes": 84572
+ },
+ {
+  "name": "debris_big",
+  "take": 1,
+  "kind": "tail",
+  "source": "2016/Mattia Cellotto - Rocks Momentum/Collapsed Stone House - Rock Single Large Impacts - 1 Meter. Rock,Large,Impact,Single,Land,Various_04.wav",
+  "cut": [
+   0,
+   8
+  ],
+  "gainDb": 4.6,
+  "before": {
+   "peakDb": -0.6,
+   "lufsMmax": -18.7,
+   "integrated": -24.37,
+   "clipped": 0,
+   "floorDb": -115.8,
+   "crestDb": 18
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.7,
+   "rmsDb": -30.3,
+   "lufsMmax": -16.5,
+   "integrated": -22.36,
+   "clipped": 0,
+   "duration": 8
+  },
+  "bytes": 138320
+ },
+ {
+  "name": "debris_big",
+  "take": 2,
+  "kind": "tail",
+  "source": "2016/Alexander Kopeikin - Rocks/rocks stream down heavy 02.wav",
+  "cut": [
+   0,
+   9.5
+  ],
+  "gainDb": 1.6,
+  "before": {
+   "peakDb": -0.7,
+   "lufsMmax": -12,
+   "integrated": -18.58,
+   "clipped": 0,
+   "floorDb": -78.8,
+   "crestDb": 15.5
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.3,
+   "rmsDb": -19,
+   "lufsMmax": -11.4,
+   "integrated": -17.28,
+   "clipped": 0,
+   "duration": 9.5
+  },
+  "bytes": 195106
+ },
+ {
+  "name": "debris_big",
+  "take": 3,
+  "kind": "tail",
+  "source": "2018/Soundrangers - Foley Elements Rocks, Dirt And Stone/dirt_collapse_05.wav",
+  "cut": [
+   0,
+   3.9
+  ],
+  "gainDb": 0.9,
+  "before": {
+   "peakDb": -0.7,
+   "lufsMmax": -13.5,
+   "integrated": -17.92,
+   "clipped": 0,
+   "floorDb": -82.6,
+   "crestDb": 23
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -24.6,
+   "lufsMmax": -13.6,
+   "integrated": -17.69,
+   "clipped": 0,
+   "duration": 3.83
+  },
+  "bytes": 95393
+ },
+ {
+  "name": "concrete_S",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Rocky Impacts/PM_RI_Source_53 Rocks Impact Hit Single Stone.wav",
+  "cut": [
+   0.19,
+   0.5
+  ],
+  "gainDb": 5.9,
+  "before": {
+   "peakDb": -1.9,
+   "lufsMmax": -24.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -40.7,
+   "crestDb": 21.2
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -23,
+   "lufsMmax": -21.6,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.5
+  },
+  "bytes": 9509
+ },
+ {
+  "name": "concrete_S",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Rocky Impacts/PM_RI_Source_92 Rocks Impact Hit Single Stone.wav",
+  "cut": [
+   0.2,
+   0.5
+  ],
+  "gainDb": 17.7,
+  "before": {
+   "peakDb": -13.7,
+   "lufsMmax": -33.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -48.6,
+   "crestDb": 18.1
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -17.7,
+   "lufsMmax": -17.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.5
+  },
+  "bytes": 8944
+ },
+ {
+  "name": "concrete_S",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Single Rock Impact on Stones.wav",
+  "cut": [
+   0.71,
+   0.45
+  ],
+  "gainDb": 11.4,
+  "before": {
+   "peakDb": -7.4,
+   "lufsMmax": -28.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -47.6,
+   "crestDb": 22.3
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -24.8,
+   "lufsMmax": -21.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.45
+  },
+  "bytes": 8949
+ },
+ {
+  "name": "concrete_S",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Single Rock Impact on Stones.wav",
+  "cut": [
+   2.87,
+   0.45
+  ],
+  "gainDb": 7,
+  "before": {
+   "peakDb": -3,
+   "lufsMmax": -28.3,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -47.1,
+   "crestDb": 26.2
+  },
+  "after": {
+   "peakDb": -2.4,
+   "truePeakDb": -2.1,
+   "rmsDb": -27,
+   "lufsMmax": -23.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.45
+  },
+  "bytes": 9177
+ },
+ {
+  "name": "concrete_M",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Mechanical Wave - Rock,Brick and Dirt - Part 02/Multiple Rock Hit Dirt_RBDII 07.wav",
+  "cut": [
+   0.61,
+   0.9
+  ],
+  "gainDb": 5.7,
+  "before": {
+   "peakDb": -1.7,
+   "lufsMmax": -26.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -63.5,
+   "crestDb": 25.1
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -0.6,
+   "rmsDb": -28.9,
+   "lufsMmax": -25.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.9
+  },
+  "bytes": 15035
+ },
+ {
+  "name": "concrete_M",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/Mechanical Wave - Rock,Brick and Dirt - Part 02/Multiple Rock Hit Dirt_RBDII 07.wav",
+  "cut": [
+   2.93,
+   1
+  ],
+  "gainDb": 6.9,
+  "before": {
+   "peakDb": -2.9,
+   "lufsMmax": -25.3,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -84.5,
+   "crestDb": 22.6
+  },
+  "after": {
+   "peakDb": -1.5,
+   "truePeakDb": -1.4,
+   "rmsDb": -29.1,
+   "lufsMmax": -23.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1
+  },
+  "bytes": 13304
+ },
+ {
+  "name": "concrete_M",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2018/Soundrangers - Foley Elements Rocks, Dirt And Stone/rockslide_02.wav",
+  "cut": [
+   1.08,
+   1
+  ],
+  "gainDb": 5.9,
+  "before": {
+   "peakDb": -1.9,
+   "lufsMmax": -25.8,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -35.9,
+   "crestDb": 24.5
+  },
+  "after": {
+   "peakDb": -2.5,
+   "truePeakDb": -2.4,
+   "rmsDb": -24.8,
+   "lufsMmax": -22.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1
+  },
+  "bytes": 16749
+ },
+ {
+  "name": "concrete_L",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Rocky Impacts/PM_RI_Designed_19 Rocks Impact Hit Big LFE Heavy Designed.wav",
+  "cut": [
+   0.42,
+   1.6
+  ],
+  "gainDb": 4.7,
+  "before": {
+   "peakDb": -0.7,
+   "lufsMmax": -17.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -110.6,
+   "crestDb": 15.2
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -1.9,
+   "rmsDb": -20.7,
+   "lufsMmax": -15.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.6
+  },
+  "bytes": 15503
+ },
+ {
+  "name": "concrete_L",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2016/Mattia Cellotto - Rocks Momentum/Collapsed Stone House - Rock Single Large Impacts - 1 Meter. Rock,Large,Impact,Single,Land,Various_04.wav",
+  "cut": [
+   8.58,
+   1.7
+  ],
+  "gainDb": 8.7,
+  "before": {
+   "peakDb": -4.7,
+   "lufsMmax": -23.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -103.2,
+   "crestDb": 15.6
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.7,
+   "rmsDb": -23.5,
+   "lufsMmax": -19.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.7
+  },
+  "bytes": 14771
+ },
+ {
+  "name": "plaster_S",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Wav Junction Sound Effects - Rocks/0228_Single_Small_Rocks_Tumble_Cliff_004.wav",
+  "cut": [
+   0.16,
+   0.5
+  ],
+  "gainDb": 7.5,
+  "before": {
+   "peakDb": -3.5,
+   "lufsMmax": -31.1,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -67.2,
+   "crestDb": 26.9
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.6,
+   "rmsDb": -30,
+   "lufsMmax": -27.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.5
+  },
+  "bytes": 10083
+ },
+ {
+  "name": "plaster_S",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/Wav Junction Sound Effects - Rocks/0228_Single_Small_Rocks_Tumble_Cliff_004.wav",
+  "cut": [
+   1.28,
+   0.45
+  ],
+  "gainDb": 9.6,
+  "before": {
+   "peakDb": -5.6,
+   "lufsMmax": -32.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -64.7,
+   "crestDb": 27.3
+  },
+  "after": {
+   "peakDb": -2.1,
+   "truePeakDb": -1.7,
+   "rmsDb": -29.3,
+   "lufsMmax": -27,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.45
+  },
+  "bytes": 9383
+ },
+ {
+  "name": "plaster_S",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2020/Wav Junction Sound Effects - Rocks/0242_Single_Small_Rocks_Tumble_Cliff_018.wav",
+  "cut": [
+   0.54,
+   0.4
+  ],
+  "gainDb": 5.3,
+  "before": {
+   "peakDb": -1.3,
+   "lufsMmax": -29.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -61.4,
+   "crestDb": 28.5
+  },
+  "after": {
+   "peakDb": -2.8,
+   "truePeakDb": -2.6,
+   "rmsDb": -32.2,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.4
+  },
+  "bytes": 9468
+ },
+ {
+  "name": "plaster_S",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2020/Wav Junction Sound Effects - Rocks/0242_Single_Small_Rocks_Tumble_Cliff_018.wav",
+  "cut": [
+   0.89,
+   0.35
+  ],
+  "gainDb": 7.6,
+  "before": {
+   "peakDb": -3.6,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -44.7,
+   "crestDb": 29.6
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.7,
+   "rmsDb": -30.7,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.35
+  },
+  "bytes": 9310
+ },
+ {
+  "name": "plaster_M",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Falling Heavy Dusty Debris.wav",
+  "cut": [
+   2.3,
+   1.1
+  ],
+  "gainDb": 11.1,
+  "before": {
+   "peakDb": -7.1,
+   "lufsMmax": -32.6,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -46.9,
+   "crestDb": 26.4
+  },
+  "after": {
+   "peakDb": -2.9,
+   "truePeakDb": -2.8,
+   "rmsDb": -28.6,
+   "lufsMmax": -22.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.1
+  },
+  "bytes": 15718
+ },
+ {
+  "name": "plaster_M",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Pebbles Dust Tumbling Rolling Debris.wav",
+  "cut": [
+   1.57,
+   1
+  ],
+  "gainDb": 10.8,
+  "before": {
+   "peakDb": -6.8,
+   "lufsMmax": -36.8,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -53.1,
+   "crestDb": 32.5
+  },
+  "after": {
+   "peakDb": -2.4,
+   "truePeakDb": -2.4,
+   "rmsDb": -34.2,
+   "lufsMmax": -29.3,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1
+  },
+  "bytes": 15351
+ },
+ {
+  "name": "plaster_M",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2018/Antisample - Rocks and Stones/Rock_Impact_Slide_Various_Garbage_MONO_09.wav",
+  "cut": [
+   0.7,
+   0.8
+  ],
+  "gainDb": 23.6,
+  "before": {
+   "peakDb": -19.6,
+   "lufsMmax": -43.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -81.7,
+   "crestDb": 24.8
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -30.4,
+   "lufsMmax": -25.1,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.77
+  },
+  "bytes": 12597
+ },
+ {
+  "name": "plaster_L",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Falling Heavy Dusty Debris.wav",
+  "cut": [
+   12.23,
+   1.8
+  ],
+  "gainDb": 11.4,
+  "before": {
+   "peakDb": -7.4,
+   "lufsMmax": -32,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -59.5,
+   "crestDb": 26.2
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.8,
+   "rmsDb": -27,
+   "lufsMmax": -21.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.8
+  },
+  "bytes": 22476
+ },
+ {
+  "name": "plaster_L",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2016/Mattia Cellotto - Rocks Momentum/Eradicated Tree - Stones Large Impacts Debris - 1 Meter. Debris,Stones,Soil,Impact,Rock,Impact,Fall,Various_04.wav",
+  "cut": [
+   5.23,
+   2
+  ],
+  "gainDb": 11.3,
+  "before": {
+   "peakDb": -7.3,
+   "lufsMmax": -29,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -106.8,
+   "crestDb": 20.8
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.7,
+   "rmsDb": -26.2,
+   "lufsMmax": -18.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2
+  },
+  "bytes": 26018
+ },
+ {
+  "name": "wood_S",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Wood Impacts and Debris/Drop Soft - Single Plank, Drop 02.wav",
+  "cut": [
+   0.3,
+   0.25
+  ],
+  "gainDb": 7,
+  "before": {
+   "peakDb": -3,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -36.3,
+   "crestDb": 20.3
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -2,
+   "rmsDb": -21.3,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.25
+  },
+  "bytes": 6533
+ },
+ {
+  "name": "wood_S",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Wood Impacts and Debris/Impacts Soft - Short, Crack.wav",
+  "cut": [
+   0.29,
+   0.16
+  ],
+  "gainDb": 13.3,
+  "before": {
+   "peakDb": -9.3,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -30.9,
+   "crestDb": 22.4
+  },
+  "after": {
+   "peakDb": -2.1,
+   "truePeakDb": -2,
+   "rmsDb": -24,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.13
+  },
+  "bytes": 5135
+ },
+ {
+  "name": "wood_S",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2018/Gibson and Ansell - Got Wood/PineBlock_8x22x100cm_FaceDropped100cmOntoMDF_BeyerdynamicTG137c_Medium.wav",
+  "cut": [
+   1.34,
+   0.6
+  ],
+  "gainDb": 12.2,
+  "before": {
+   "peakDb": -8.2,
+   "lufsMmax": -30.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -62.8,
+   "crestDb": 20.6
+  },
+  "after": {
+   "peakDb": -2.1,
+   "truePeakDb": -2.1,
+   "rmsDb": -23.4,
+   "lufsMmax": -21.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.6
+  },
+  "bytes": 8507
+ },
+ {
+  "name": "wood_S",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2018/Gibson and Ansell - Got Wood/PlywoodOffcut_2x33x35cm_RandomlyDropped100cmOntoMDF_Se2200A_Medium.wav",
+  "cut": [
+   5.17,
+   0.6
+  ],
+  "gainDb": 9.3,
+  "before": {
+   "peakDb": -5.3,
+   "lufsMmax": -26.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -53.4,
+   "crestDb": 20.8
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.7,
+   "rmsDb": -22.6,
+   "lufsMmax": -21.4,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.6
+  },
+  "bytes": 8864
+ },
+ {
+  "name": "wood_M",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Wood Impacts and Debris/Impacts Hard - Short Wobbly Tail 01.wav",
+  "cut": [
+   0.19,
+   0.44
+  ],
+  "gainDb": 7.3,
+  "before": {
+   "peakDb": -3.3,
+   "lufsMmax": -23.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -48.4,
+   "crestDb": 19.7
+  },
+  "after": {
+   "peakDb": -2.6,
+   "truePeakDb": -2.6,
+   "rmsDb": -21.1,
+   "lufsMmax": -20,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.44
+  },
+  "bytes": 7922
+ },
+ {
+  "name": "wood_M",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Wood Impacts and Debris/Rustles - Pile, Debris 22.wav",
+  "cut": [
+   0.26,
+   0.4
+  ],
+  "gainDb": 4.3,
+  "before": {
+   "peakDb": -0.3,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -22.1,
+   "crestDb": 19.9
+  },
+  "after": {
+   "peakDb": -2.6,
+   "truePeakDb": -2.4,
+   "rmsDb": -20.5,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.4
+  },
+  "bytes": 8194
+ },
+ {
+  "name": "wood_M",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2018/Antisample - Rocks and Stones/Wood_Impact_Wood_Sawdust_5.wav",
+  "cut": [
+   0.31,
+   1.2
+  ],
+  "gainDb": 6.2,
+  "before": {
+   "peakDb": -2.2,
+   "lufsMmax": -27.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -59.3,
+   "crestDb": 24.6
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.6,
+   "rmsDb": -28.1,
+   "lufsMmax": -25,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.2
+  },
+  "bytes": 19375
+ },
+ {
+  "name": "wood_L",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2016/Mattia Cellotto - Rocks Momentum/Woodshed - Rock and Wood Large Impacts - 1 Meter. Rock,Wood,Large,Impact,Roll,Various_02.wav",
+  "cut": [
+   6.15,
+   1.6
+  ],
+  "gainDb": 11.9,
+  "before": {
+   "peakDb": -7.9,
+   "lufsMmax": -23.8,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -91.3,
+   "crestDb": 12.1
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -17.8,
+   "lufsMmax": -14.9,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.6
+  },
+  "bytes": 13198
+ },
+ {
+  "name": "wood_L",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2016/Mattia Cellotto - Rocks Momentum/Woodshed - Rock and Wood Large Impacts - 1 Meter. Rock,Wood,Large,Impact,Roll,Various_02.wav",
+  "cut": [
+   3.17,
+   1.3
+  ],
+  "gainDb": 11.3,
+  "before": {
+   "peakDb": -7.3,
+   "lufsMmax": -24.9,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -92.9,
+   "crestDb": 12.7
+  },
+  "after": {
+   "peakDb": -2,
+   "truePeakDb": -2,
+   "rmsDb": -17.2,
+   "lufsMmax": -17,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.3
+  },
+  "bytes": 12469
+ },
+ {
+  "name": "metal_S",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/Airborne Sound - Elements Metal/Metal,Hits,Pipe,Mixed,Fast,Irregular.wav",
+  "cut": [
+   0.1,
+   0.2
+  ],
+  "gainDb": 15.1,
+  "before": {
+   "peakDb": -11.1,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -24.9,
+   "crestDb": 15.6
+  },
+  "after": {
+   "peakDb": -1.7,
+   "truePeakDb": -1.6,
+   "rmsDb": -16.1,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.2
+  },
+  "bytes": 6530
+ },
+ {
+  "name": "metal_S",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2019/Airborne Sound - Elements Metal/Metal,Hits,Pipe,Mixed,Fast,Irregular.wav",
+  "cut": [
+   0.41,
+   0.7
+  ],
+  "gainDb": 11.7,
+  "before": {
+   "peakDb": -7.7,
+   "lufsMmax": -27.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -68.4,
+   "crestDb": 20.2
+  },
+  "after": {
+   "peakDb": -2.1,
+   "truePeakDb": -1.9,
+   "rmsDb": -24.5,
+   "lufsMmax": -19.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.7
+  },
+  "bytes": 10210
+ },
+ {
+  "name": "metal_S",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2017/SoundBits - Just Impacts - Extension II/Metal_Hit_Crash_090.wav",
+  "cut": [
+   2.28,
+   0.6
+  ],
+  "gainDb": 11.1,
+  "before": {
+   "peakDb": -7.1,
+   "lufsMmax": -31.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -58.8,
+   "crestDb": 23.3
+  },
+  "after": {
+   "peakDb": -2.3,
+   "truePeakDb": -2.3,
+   "rmsDb": -27.4,
+   "lufsMmax": -25.4,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.6
+  },
+  "bytes": 9667
+ },
+ {
+  "name": "metal_S",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2020/Pole Position - Car Destruction/Car_Destruction_Chassis_Impact_t36_Ext_Drop_on_Ground_Metal_Crash_Bounce_Various_MKH8060.wav",
+  "cut": [
+   12.03,
+   0.3
+  ],
+  "gainDb": 13.2,
+  "before": {
+   "peakDb": -9.2,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -27.9,
+   "crestDb": 13.9
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.6,
+   "rmsDb": -12.9,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.3
+  },
+  "bytes": 7344
+ },
+ {
+  "name": "metal_M",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2018/Bluezone Corporation - Metal Debris/Bluezone_BC0236_metal_debris_097.wav",
+  "cut": [
+   1.38,
+   1.6
+  ],
+  "gainDb": 1.8,
+  "before": {
+   "peakDb": 0,
+   "lufsMmax": -13.8,
+   "integrated": null,
+   "clipped": 3,
+   "floorDb": -47.9,
+   "crestDb": 16.6
+  },
+  "after": {
+   "peakDb": -1.4,
+   "truePeakDb": -1.1,
+   "rmsDb": -21.3,
+   "lufsMmax": -13.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.6
+  },
+  "bytes": 20465
+ },
+ {
+  "name": "metal_M",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/SoundBits - Just Impacts - Extension II/Metal_Jolt_Rattle_Scrape_52.wav",
+  "cut": [
+   0.12,
+   0.85
+  ],
+  "gainDb": 0,
+  "before": {
+   "peakDb": -1.2,
+   "lufsMmax": -12,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -45.4,
+   "crestDb": 10.3
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.4,
+   "rmsDb": -16.7,
+   "lufsMmax": -12.6,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.85
+  },
+  "bytes": 11596
+ },
+ {
+  "name": "metal_M",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2017/Double Trouble Audio - Junk and Debris/Pile of Scrap Metal - Metal Scrap Pile, Rustle, Drop, Long Tail 03.wav",
+  "cut": [
+   0.74,
+   1.6
+  ],
+  "gainDb": 1.5,
+  "before": {
+   "peakDb": -0.1,
+   "lufsMmax": -13.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -58.9,
+   "crestDb": 18.9
+  },
+  "after": {
+   "peakDb": -1.4,
+   "truePeakDb": -1.4,
+   "rmsDb": -19.4,
+   "lufsMmax": -13.5,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.6
+  },
+  "bytes": 18942
+ },
+ {
+  "name": "metal_L",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Pole Position - Car Destruction/Car_Destruction_Chassis_Impact_t36_Ext_Drop_on_Ground_Metal_Crash_Bounce_Various_MKH8060.wav",
+  "cut": [
+   2.96,
+   2.2
+  ],
+  "gainDb": 7.9,
+  "before": {
+   "peakDb": -3.9,
+   "lufsMmax": -21.2,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -58.7,
+   "crestDb": 14.9
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.6,
+   "rmsDb": -18.7,
+   "lufsMmax": -15.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.2
+  },
+  "bytes": 25569
+ },
+ {
+  "name": "metal_L",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2017/Pole Position - Car Debris, Impacts & Crashes/peugeot_106_dropped_5m_on_metal_plates_zaxcom_holophone_1.wav",
+  "cut": [
+   1.12,
+   2.4
+  ],
+  "gainDb": 15.2,
+  "before": {
+   "peakDb": -11.2,
+   "lufsMmax": -27.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -72.3,
+   "crestDb": 15.2
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -21.3,
+   "lufsMmax": -14.6,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2.4
+  },
+  "bytes": 27253
+ },
+ {
+  "name": "brick_S",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_SOURCE_16 Impact brick rock dirt gravel single hit.wav",
+  "cut": [
+   0.62,
+   0.45
+  ],
+  "gainDb": 7.8,
+  "before": {
+   "peakDb": -3.8,
+   "lufsMmax": -26,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -67.5,
+   "crestDb": 18.8
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -18.4,
+   "lufsMmax": -20.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.45
+  },
+  "bytes": 8926
+ },
+ {
+  "name": "brick_S",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_SOURCE_61 Impact brick rock dirt gravel single hit.wav",
+  "cut": [
+   0.68,
+   0.35
+  ],
+  "gainDb": 15.5,
+  "before": {
+   "peakDb": -11.5,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -49.1,
+   "crestDb": 23.4
+  },
+  "after": {
+   "peakDb": -2.2,
+   "truePeakDb": -2.2,
+   "rmsDb": -22.1,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.35
+  },
+  "bytes": 8004
+ },
+ {
+  "name": "brick_S",
+  "take": 3,
+  "kind": "oneshot",
+  "source": "2020/PMSFX - Shattering Bricks/PM_SB_SOURCE_61 Impact brick rock dirt gravel single hit.wav",
+  "cut": [
+   1.05,
+   0.4
+  ],
+  "gainDb": 14.8,
+  "before": {
+   "peakDb": -10.8,
+   "lufsMmax": -37.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -69,
+   "crestDb": 28.9
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.3,
+   "rmsDb": -31.4,
+   "lufsMmax": -120.7,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.4
+  },
+  "bytes": 8077
+ },
+ {
+  "name": "brick_S",
+  "take": 4,
+  "kind": "oneshot",
+  "source": "2017/Mechanical Wave - Rock,Brick and Dirt - Part 02/Rock Hit and Bounce Dirt_RBDII 06.wav",
+  "cut": [
+   0.11,
+   0.6
+  ],
+  "gainDb": 9.9,
+  "before": {
+   "peakDb": -5.9,
+   "lufsMmax": -28.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -57.2,
+   "crestDb": 24.1
+  },
+  "after": {
+   "peakDb": -2.2,
+   "truePeakDb": -1,
+   "rmsDb": -26.8,
+   "lufsMmax": -23.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 0.6
+  },
+  "bytes": 10954
+ },
+ {
+  "name": "slide_rubble",
+  "take": 1,
+  "kind": "loop",
+  "source": "2018/Soundrangers - Foley Elements Rocks, Dirt And Stone/rockslide_02.wav",
+  "cut": [
+   0.4,
+   4.6
+  ],
+  "gainDb": 5.9,
+  "before": {
+   "peakDb": -1.9,
+   "lufsMmax": -24.8,
+   "integrated": -27.61,
+   "clipped": 0,
+   "floorDb": -45.1,
+   "crestDb": 22.3
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.6,
+   "rmsDb": -25.1,
+   "lufsMmax": -20.3,
+   "integrated": -22.81,
+   "clipped": 0,
+   "duration": 4.6
+  },
+  "bytes": 65793
+ },
+ {
+  "name": "slide_rubble",
+  "take": 2,
+  "kind": "loop",
+  "source": "2020/Tatak Audio - Rocks and Debris/Tatak_ROCKS_Pebbles Dust Tumbling Rolling Debris.wav",
+  "cut": [
+   1.3,
+   6
+  ],
+  "gainDb": 13.6,
+  "before": {
+   "peakDb": -9.6,
+   "lufsMmax": -38.8,
+   "integrated": -46.2,
+   "clipped": 0,
+   "floorDb": -82.2,
+   "crestDb": 33.1
+  },
+  "after": {
+   "peakDb": -2.7,
+   "truePeakDb": -2.5,
+   "rmsDb": -37.7,
+   "lufsMmax": -27.5,
+   "integrated": -33.56,
+   "clipped": 0,
+   "duration": 6
+  },
+  "bytes": 78751
+ },
+ {
+  "name": "creak_wood",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Wood Sound Effects/Bluezone_BC0254_wood_creaking_tree_005.wav",
+  "cut": [
+   0.6,
+   1.4
+  ],
+  "gainDb": 4,
+  "before": {
+   "peakDb": 0,
+   "lufsMmax": -22.1,
+   "integrated": null,
+   "clipped": 1,
+   "floorDb": -35.9,
+   "crestDb": 22.4
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.5,
+   "rmsDb": -26.3,
+   "lufsMmax": -22.8,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.4
+  },
+  "bytes": 18019
+ },
+ {
+  "name": "creak_wood",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2019/BlueZone - Wood Sound Effects/Bluezone_BC0254_wood_creaking_tree_005.wav",
+  "cut": [
+   1.9,
+   1.3
+  ],
+  "gainDb": 4.2,
+  "before": {
+   "peakDb": -0.2,
+   "lufsMmax": -21.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -34.6,
+   "crestDb": 24.3
+  },
+  "after": {
+   "peakDb": -2.2,
+   "truePeakDb": -1.7,
+   "rmsDb": -24.9,
+   "lufsMmax": -22.4,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.3
+  },
+  "bytes": 16269
+ },
+ {
+  "name": "creak_steel",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2020/Pole Position - The Junkyard Metal Library/Metal_Creak_Van_Door_Back_and_Forth_Various_CO100k.wav",
+  "cut": [
+   49.3,
+   1.4
+  ],
+  "gainDb": 10.9,
+  "before": {
+   "peakDb": -6.9,
+   "lufsMmax": -29.7,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -60.7,
+   "crestDb": 20
+  },
+  "after": {
+   "peakDb": -2.5,
+   "truePeakDb": -1.9,
+   "rmsDb": -22.1,
+   "lufsMmax": -20.4,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.75
+  },
+  "bytes": 19558
+ },
+ {
+  "name": "creak_steel",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/Pole Position - The Junkyard Metal Library/Metal_Rocking_Diesel_Tank_Pulses_A_DPA4061.wav",
+  "cut": [
+   14.77,
+   1.8
+  ],
+  "gainDb": 11.4,
+  "before": {
+   "peakDb": -13,
+   "lufsMmax": -26.4,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -52.6,
+   "crestDb": 12.7
+  },
+  "after": {
+   "peakDb": -1.9,
+   "truePeakDb": -1.9,
+   "rmsDb": -19.7,
+   "lufsMmax": -15.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.8
+  },
+  "bytes": 18671
+ },
+ {
+  "name": "groan_masonry",
+  "take": 1,
+  "kind": "oneshot",
+  "source": "2018/Gregor Quendel - Designed Rocks/Designed Rocks - EVO19 - Texture - Filtered 4.wav",
+  "cut": [
+   13.7,
+   2
+  ],
+  "gainDb": 6,
+  "before": {
+   "peakDb": -6.7,
+   "lufsMmax": -20,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -36.9,
+   "crestDb": 16.2
+  },
+  "after": {
+   "peakDb": -1.8,
+   "truePeakDb": -1.8,
+   "rmsDb": -14.7,
+   "lufsMmax": -14.2,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 2
+  },
+  "bytes": 20497
+ },
+ {
+  "name": "groan_masonry",
+  "take": 2,
+  "kind": "oneshot",
+  "source": "2020/Wav Junction Sound Effects - Rocks/0119_Rock_Quick_Drag_On_Rock_029.wav",
+  "cut": [
+   0.73,
+   0.7
+  ],
+  "gainDb": 6.7,
+  "before": {
+   "peakDb": -2.7,
+   "lufsMmax": -26.5,
+   "integrated": null,
+   "clipped": 0,
+   "floorDb": -79.1,
+   "crestDb": 24.5
+  },
+  "after": {
+   "peakDb": -1.6,
+   "truePeakDb": -1.5,
+   "rmsDb": -28,
+   "lufsMmax": -22.4,
+   "integrated": null,
+   "clipped": 0,
+   "duration": 1.17
+  },
+  "bytes": 14346
+ }
+]

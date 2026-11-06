@@ -1,0 +1,1481 @@
+// The city's renderer. Every voxel is one instance of a unit cube, placed in the vertex shader
+// straight from the solver's body buffer (shared with it: nothing is copied per frame), and
+// shaded procedurally in its own local frame, so a brick keeps its courses as it tumbles:
+// concrete with weathering, brick and mortar, framed glass that mirrors the sky, windows lit
+// from inside, steel and gravel roofs. The streets are drawn on the ground from world
+// position: asphalt, lane markings, crossings, pavements, paved plazas. Then ambient
+// occlusion, bloom, fog and ACES.
+
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { depthAwareBlend } from 'three/addons/tsl/display/depthAwareBlend.js';
+import { film } from 'three/addons/tsl/display/FilmNode.js';
+import { godrays } from 'three/addons/tsl/display/GodraysNode.js';
+import { smaa } from 'three/addons/tsl/display/SMAANode.js';
+import { fxaa } from 'three/addons/tsl/display/FXAANode.js';
+import { ao } from 'three/addons/tsl/display/GTAONode.js';
+import {
+  abs,
+  Fn,
+  Loop,
+  perspectiveDepthToViewZ,
+  rtt,
+  add,
+  cameraPosition,
+  clamp,
+  cross,
+  equirectUV,
+  fwidth,
+  length,
+  lights,
+  exp,
+  float,
+  floor,
+  fract,
+  hash,
+  instanceIndex,
+  int,
+  uint,
+  max,
+  min,
+  mix,
+  mod,
+  mrt,
+  mx_noise_float,
+  normalGeometry,
+  normalize,
+  normalView,
+  output,
+  pass,
+  positionGeometry,
+  positionLocal,
+  positionWorld,
+  pow,
+  renderOutput,
+  select,
+  sign,
+  smoothstep,
+  step,
+  storage,
+  texture,
+  texture3D,
+  transformNormalToView,
+  uniform,
+  uniformArray,
+  uv,
+  varying,
+  vec2,
+  vec3,
+  vec4,
+} from 'three/tsl';
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import * as THREE from 'three/webgpu';
+import { B_POS, B_ROT, B_SIZE, BODY_FLOATS } from 'three-avbd/advanced';
+import { edgeShade } from './look.ts';
+import { PARKED_BELOW } from './physics.ts';
+import { BASE, type City, Mat, VOXEL } from './world.ts';
+
+type Vec3 = THREE.Node<'vec3'>;
+type Vec4 = THREE.Node<'vec4'>;
+type Float = THREE.Node<'float'>;
+/** A read-only storage buffer of vec4s, as the voxel shaders read it. */
+const vec4Storage = (a: THREE.StorageInstancedBufferAttribute, n: number) => storage(a, 'vec4', n).toReadOnly();
+type StorageVec4 = ReturnType<typeof vec4Storage>;
+
+/** v rotated by the unit quaternion q = (u, w). */
+function rotate(q: Vec4, v: Vec3): Vec3 {
+  const t = cross(q.xyz, v).mul(2);
+  return v.add(t.mul(q.w)).add(cross(q.xyz, t));
+}
+
+export type RenderQuality = 'low' | 'medium' | 'high';
+
+/**
+ * Detail drawn on each voxel's faces, for its size: brick courses and bricks along a course
+ * (a course is 8 cm, a brick 25 cm), and the voxel-art cells (an eighth of a metre).
+ */
+const BRICKS = Math.max(1, Math.round(VOXEL / 0.25));
+
+/** Sun shaft density in clear air and in thick dust. */
+/**
+ * A scene pass that clears to transparent black whatever the renderer's clear colour: effects
+ * that copy their input into a texture first (bloom, SMAA, FXAA) reset the renderer to clear
+ * opaque black while they do, and a pass rendered inside them inherited it (the smoke's
+ * coverage came out 1 everywhere, and the scene under it black).
+ */
+class TransparentPass extends THREE.PassNode {
+  private readonly held = new THREE.Color();
+  updateBefore(frame: THREE.NodeFrame): boolean | undefined {
+    const renderer = frame.renderer as THREE.Renderer;
+    const alpha = renderer.getClearAlpha();
+    renderer.getClearColor(this.held);
+    renderer.setClearColor(this.held, 0);
+    const result = super.updateBefore(frame);
+    renderer.setClearColor(this.held, alpha);
+    return result;
+  }
+}
+
+/** The smoke pass's resolution, as a share of the scene's, by quality. */
+const SMOKE_SCALE: Record<RenderQuality, number> = { high: 0.5, medium: 0.5, low: 0.35 };
+/**
+ * Pixels drawn at most at each quality, where a screen is small enough that its pixel ratio cap would draw fewer
+ * (a phone's): about as many as a laptop's screen at that quality. Larger screens keep their cap.
+ */
+const PIXEL_BUDGET: Record<RenderQuality, number> = { high: 1.6e6, medium: 1.0e6, low: 0.7e6 };
+
+/** Bodies the voxel buffers are made for (the largest contract's, with room), and glass panes' voxels. */
+const VOXEL_CAPACITY = 100_000;
+const GLASS_CAPACITY = 24_000;
+
+const RAYS_CLEAR = 0.04;
+const RAYS_DUSTY = 0.14;
+
+/**
+ * Surfaces (Polyhaven, CC0: public/textures, credits there): a layer each in one array texture
+ * per map (colour, normal, AO-roughness-metal), so a face samples its own with one lookup.
+ * `metres`: the width one tile covers.
+ */
+const SETS = [
+  { id: 'brick_wall_005', metres: 1.44 },
+  { id: 'concrete_wall_008', metres: 2.71 },
+  { id: 'plastered_wall_02', metres: 2.23 },
+  { id: 'damaged_plaster', metres: 1.85 },
+  { id: 'asphalt_03', metres: 2.05 },
+];
+const [L_BRICK, L_CONCRETE, L_PLASTER, L_BROKEN, L_ASPHALT] = [0, 1, 2, 3, 4];
+const TEXTURE_SIZE = 1024;
+
+interface Surfaces {
+  diffuse: THREE.DataArrayTexture;
+  normal: THREE.DataArrayTexture;
+  arm: THREE.DataArrayTexture;
+}
+
+/**
+ * The surface textures, decoded and stacked (row 0 at the bottom, so v runs up the image as the
+ * normal map's green does). `onFile(done, total)` after each image.
+ */
+async function loadSurfaces(onFile: (done: number, total: number) => void = () => {}): Promise<Surfaces> {
+  const maps = ['diff', 'nor_gl', 'arm'];
+  const total = SETS.length * maps.length;
+  let done = 0;
+  const layers = await Promise.all(
+    SETS.flatMap((set) =>
+      maps.map(async (map) => {
+        const blob = await (await fetch(`textures/${set.id}_${map}_1k.webp`)).blob();
+        const bitmap = await createImageBitmap(blob, { imageOrientation: 'flipY' });
+        const canvas = new OffscreenCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(bitmap, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+        bitmap.close();
+        onFile(++done, total);
+        return ctx.getImageData(0, 0, TEXTURE_SIZE, TEXTURE_SIZE).data;
+      }),
+    ),
+  );
+  const build = (k: number, srgb: boolean) => {
+    const data = new Uint8Array(TEXTURE_SIZE * TEXTURE_SIZE * 4 * SETS.length);
+    SETS.forEach((_, i) => data.set(layers[i * maps.length + k], i * TEXTURE_SIZE * TEXTURE_SIZE * 4));
+    const t = new THREE.DataArrayTexture(data, TEXTURE_SIZE, TEXTURE_SIZE, SETS.length);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = 8;
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.needsUpdate = true;
+    return t;
+  };
+  return { diffuse: build(0, true), normal: build(1, false), arm: build(2, false) };
+}
+
+/** A material's base colour (world.ts BASE), linear. */
+function baseColour(m: Mat): Vec3 {
+  const c = new THREE.Color(BASE[m]);
+  return vec3(c.r, c.g, c.b);
+}
+
+/** Nearer than this (m) is the tool in hand, not the world: no ambient occlusion on it. */
+const HAND_REACH = 0.9;
+/**
+ * Farther than this (m) it fades out: there the depth buffer is coarse (the Earth is 350 m under
+ * the station and 2 km off at the horizon), and the occlusion made noise of it; nothing that
+ * far is close enough to anything for its occlusion to show.
+ */
+const AO_FADE = [120, 250];
+
+/** Point lights for blasts and fire: made once, at the start, so the lit materials compile with them and never again. */
+const LIGHT_POOL = 4;
+/** Scorch marks on the ground, at most (the oldest gives way). */
+const SCORCHES = 16;
+
+/** A pool light's job: a blast's flash (I·q), its flicker after (I·q², jittered), a fire's flames, or nothing. */
+interface LightJob {
+  kind: 'off' | 'flash' | 'flicker' | 'fire';
+  at: THREE.Vector3;
+  /** Seconds since it started, and how long it lasts. */
+  t: number;
+  life: number;
+  intensity: number;
+}
+
+export class CityRenderer {
+  readonly renderer: THREE.WebGPURenderer;
+  readonly scene = new THREE.Scene();
+  readonly camera = new THREE.PerspectiveCamera(75, 1, 0.05, 6000);
+  readonly sun = new THREE.DirectionalLight(0xffffff, 3);
+  readonly hemi = new THREE.HemisphereLight(0xbcd4ff, 0x6b5f52, 0.25);
+  /** Unit vector towards the sun. */
+  readonly sunDirection = new THREE.Vector3(0.45, -0.55, 0.42).normalize();
+  private readonly post: THREE.RenderPipeline;
+  private bodies: THREE.StorageInstancedBufferAttribute | null = null;
+  private paints: THREE.StorageInstancedBufferAttribute | null = null;
+  /** Per body: carried by a section (offset xyz, the section's body; w < 0: not carried). */
+  private links: THREE.StorageInstancedBufferAttribute | null = null;
+  private voxels: THREE.Mesh | null = null;
+  /** The voxel buffers as the shaders read them (for the glass). */
+  private nodes: { bodies: StorageVec4; paints: StorageVec4; links: StorageVec4 } | null = null;
+  /** Each body's time burned by the laser (the world's clock, s), for the cut's glow. */
+  private heats: THREE.StorageInstancedBufferAttribute | null = null;
+  /** Each body's voxel's place in the city as built (xyz): its faces' texture stays put on it wherever it goes. */
+  private homes: THREE.StorageInstancedBufferAttribute | null = null;
+  /** The world's clock (s), which the cut's glow cools by. */
+  readonly heatClock = uniform(0);
+  private glass: THREE.Mesh | null = null;
+  private readonly outputs: { high: THREE.Node; low: THREE.Node };
+  quality: RenderQuality = 'high';
+  /** The bloom (explosions push its strength up briefly). */
+  private readonly bloomPass: ReturnType<typeof bloom>;
+  /** Sun shafts, and their colour (the sun's). */
+  private readonly rays: ReturnType<typeof godrays>;
+  private readonly rayColour = uniform(new THREE.Color(1, 0.9, 0.75));
+  /**
+   * Crepuscular rays round what stands against the sky (GPU Gems 3 ch. 13, as the light-shafts
+   * lab does them): the bright sky near the sun, where nothing covers it, blurred radially
+   * toward the sun on screen at half resolution and added on. Where the sun is on screen (y
+   * down), how much it faces the view (fading out as it turns away), and the strength.
+   */
+  private readonly sunScreen = uniform(new THREE.Vector2(0.5, 0.5));
+  private readonly sunFade = uniform(0);
+  private readonly aspect = uniform(1);
+  readonly sunRays = uniform(1);
+  /** Depth of field: the distance in focus (m), how far either side stays sharp (m), and the bokeh's size (0: off). */
+  private readonly focus = uniform(30);
+  private readonly focalRange = uniform(60);
+  private readonly bokeh = uniform(0);
+  /** Tilt-shift (0..1): blur toward the top and bottom of the screen, for the miniature look of the replay camera. */
+  readonly tilt = uniform(0);
+  /** Exposure pulse (1: none): a big blast flashes the whole frame for a moment. */
+  readonly pulse = uniform(1);
+  /** Saturation of the grade (1.2 normally; the kill-cam pushes it). */
+  readonly saturation = uniform(1.2);
+  /** The drop zone ring on the ground: centre xy, radius (m), shown when w > 0. */
+  readonly zone = uniform(new THREE.Vector4(0, 0, 0, 0));
+  /** One pixel, as a share of the screen (the blur's taps are placed in pixels). */
+  private readonly pixel = uniform(new THREE.Vector2(1 / 1920, 1 / 1080));
+  /**
+   * Smoke, dust and fire: drawn by a pass of their own at a share of the resolution
+   * (SMOKE_SCALE), against the scene's depth (`sceneDepth`), and laid over the scene after its
+   * ambient occlusion and before the bloom (fire glows, smoke isn't darkened like a wall).
+   */
+  readonly smokeScene = new THREE.Scene();
+  readonly sceneDepth: THREE.TextureNode;
+  private readonly smokePass: TransparentPass;
+  /** What GPU this is (vendor, architecture, device), for keeping a calibration per device. */
+  adapterInfo = 'unknown';
+  /** The surface textures (null while loading, or if they could not be: the surfaces are procedural then). */
+  private surfaces: Surfaces | null = null;
+  private readonly skies = new Map<string, Promise<THREE.Texture>>();
+  /**
+   * The light pool: a blast's flash and the flicker after it, the nearest fires. Four
+   * point lights, in the scene from the start at intensity 0 (no shadows), so nothing recompiles when one lights.
+   */
+  readonly lights: THREE.PointLight[] = [];
+  /**
+   * The sun and the sky's light alone: what everything but the voxels and the ground is lit by (the tool in hand,
+   * chips, glass, the backdrop), so the pool's four lights cost shader code only where blasts are seen to light
+   * things. Compiling them into every material lengthened the load by about half a second.
+   */
+  private baseLights: ReturnType<typeof lights> | null = null;
+  private readonly jobs: LightJob[] = [];
+  /** Each body's char (0..1): blackened and dull where a blast or fire scorched it. */
+  private chars: THREE.StorageInstancedBufferAttribute | null = null;
+  /** Each body's load (its layer's, as structure.ts stress) for the load overlay, and whether it shows (0..1). */
+  private stresses: THREE.StorageInstancedBufferAttribute | null = null;
+  readonly overlay = uniform(0);
+  private charDirty = false;
+  private charAt = 0;
+  /** Scorch marks on the ground: centre xy, radius (m), strength (0..1). */
+  private readonly scorch = uniformArray(Array.from({ length: SCORCHES }, () => new THREE.Vector4(0, 0, 0, 0)), 'vec4');
+  private scorchNext = 0;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.renderer = new THREE.WebGPURenderer({ canvas, antialias: false, requiredLimits: { maxStorageBufferBindingSize: 1 << 30, maxBufferSize: 1 << 30 } });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1;
+    this.camera.up.set(0, 0, 1);
+
+    const sun = this.sun;
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(4096, 4096);
+    const s = sun.shadow.camera as THREE.OrthographicCamera;
+    [s.left, s.right, s.top, s.bottom, s.near, s.far] = [-110, 110, 110, -110, 1, 900];
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.02;
+    this.scene.add(sun, sun.target, this.hemi);
+    this.scene.fog = new THREE.FogExp2(0xc9d6e2, 0.0022);
+    this.smokeScene.fog = this.scene.fog;
+    this.renderer.setClearColor(0x000000, 0);
+    this.groundMesh = this.ground();
+    this.scene.add(this.groundMesh);
+    for (let k = 0; k < LIGHT_POOL; k++) {
+      const light = new THREE.PointLight(0xff8033, 0, 30, 2);
+      light.castShadow = false;
+      light.position.set(0, 0, -500);
+      this.scene.add(light);
+      this.lights.push(light);
+      this.jobs.push({ kind: 'off', at: new THREE.Vector3(), t: 0, life: 0, intensity: 0 });
+    }
+
+    this.post = new THREE.RenderPipeline(this.renderer);
+    const scene = pass(this.scene, this.camera, { samples: 0 });
+    scene.setMRT(mrt({ output, normal: normalView }));
+    const colour = scene.getTextureNode('output');
+    const depth = scene.getTextureNode('depth');
+    // The smoke reads the scene's depth as a plain texture: through the pass's own texture
+    // node, the smoke pass's render pulled the scene pass into it and the scene came out black
+    this.sceneDepth = texture(scene.getTexture('depth'));
+    // The smoke's pass: premultiplied colour and coverage over transparent black
+    this.smokePass = new TransparentPass(THREE.PassNode.COLOR, this.smokeScene, this.camera, { samples: 0, depthBuffer: false });
+    this.smokePass.setResolutionScale(SMOKE_SCALE.high);
+    const smoke = this.smokePass.getTextureNode('output');
+    const over = (under: Vec4) => vec4(add(under.rgb.mul(float(1).sub(smoke.a)), smoke.rgb), 1);
+    const occlusion = ao(depth, scene.getTextureNode('normal'), this.camera);
+    occlusion.resolutionScale = 0.5;
+    occlusion.radius.value = 1.2;
+    occlusion.thickness.value = 1.5;
+    occlusion.scale.value = 1.4;
+    // Sun shafts: the light marched through the shadow map, blended in away from depth edges
+    const rays = godrays(depth, this.camera, this.sun);
+    rays.raymarchSteps.value = 48;
+    rays.density.value = RAYS_CLEAR;
+    rays.maxDensity.value = 0.25;
+    rays.distanceAttenuation.value = 1.5;
+    this.rays = rays;
+    const shafts = depthAwareBlend(colour, rays.getTextureNode(), depth, this.camera, { blendColor: this.rayColour, edgeRadius: 2, edgeStrength: 2 });
+    // The game camera's clip planes (in these passes cameraNear/cameraFar are the full-screen
+    // quad's own camera, 0 and 1: every pixel came out a metre away)
+    const near = uniform(this.camera.near);
+    const far = uniform(this.camera.far);
+    // Sun rays: the sky's light near the sun where nothing stands in front of it (the sky
+    // doesn't write depth: it keeps the far plane)
+    const viewZ = perspectiveDepthToViewZ(depth, near, far);
+    const skyShare = step(far.mul(0.999), viewZ.negate());
+    const fromSun = uv().sub(this.sunScreen).mul(vec2(this.aspect, 1)).length();
+    // Only the sky brighter than its surroundings (the sun's glow, lit cloud edges) makes rays,
+    // falling off away from the sun: a plain bright sky makes haze, not shafts
+    const bright = colour.rgb.sub(vec3(0.8)).max(0);
+    const skyGlow = bright.mul(skyShare).mul(pow(float(1).sub(fromSun.div(0.6)).max(0), 3));
+    const mask = rtt(vec4(skyGlow.min(vec3(40)), 1), null, null, { resolutionScale: 0.5 });
+    const SAMPLES = 64;
+    const radial = Fn(() => {
+      const at = uv().toVar();
+      const delta = uv().sub(this.sunScreen).mul(0.9 / SAMPLES);
+      const sum = mask.sample(uv()).rgb.toVar();
+      const falloff = float(1).toVar();
+      Loop(SAMPLES, () => {
+        at.subAssign(delta);
+        sum.addAssign(mask.sample(at).rgb.mul(falloff).mul(0.4));
+        falloff.mulAssign(0.965);
+      });
+      return vec4(sum.mul(0.05).mul(this.sunFade).mul(this.sunRays), 1);
+    })();
+    const sunRays = rtt(radial, null, null, { resolutionScale: 0.5 });
+    // Laid on after the smoke, dimmed where it's thick
+    const raysOver = vec4(sunRays.rgb.mul(float(1).sub(smoke.a.mul(0.7))), 0);
+    // The tool in hand (under a metre away) gets no occlusion: at the AO's metre-wide reach it
+    // darkens itself all over, its lit parts too
+    const unoccluded = (z: THREE.Node<'float'>) => step(z.negate(), float(HAND_REACH)).max(smoothstep(float(AO_FADE[0]), float(AO_FADE[1]), z.negate()));
+    const litSharp = over(vec4(shafts.rgb.mul(occlusion.getTextureNode().r.max(unoccluded(viewZ))), 1));
+    // Depth of field, gathered from what's already drawn (the scene, its occlusion, the smoke):
+    // a disc of taps sized by the blur at this pixel, each weighted by its own blur so what's
+    // in focus doesn't smear over the background behind it.
+    const cocAt = (at: THREE.Node<'vec2'>) => {
+      // Background only: sharp up to the focus distance, softening over focalRange beyond it
+      // (nothing nearer is ever blurred: the blur draws the eye in, it doesn't hide the action)
+      const z = perspectiveDepthToViewZ(depth.sample(at).r, near, far).negate();
+      const tilted = smoothstep(float(0.1), float(0.42), abs(at.y.sub(0.5))).mul(this.tilt);
+      return smoothstep(float(0), this.focalRange, z.sub(this.focus)).max(tilted);
+    };
+    const occTex = occlusion.getTextureNode();
+    const litAt = (at: THREE.Node<'vec2'>) => {
+      const s2 = smoke.sample(at);
+      const occ = occTex.sample(at).r.max(unoccluded(perspectiveDepthToViewZ(depth.sample(at).r, near, far)));
+      return colour.sample(at).rgb.mul(occ).mul(float(1).sub(s2.a)).add(s2.rgb);
+    };
+    const TAPS = 24;
+    const disc = Array.from({ length: TAPS }, (_, i) => {
+      const r = Math.sqrt((i + 0.5) / TAPS);
+      const a = i * 2.39996323;
+      return [r * Math.cos(a), r * Math.sin(a)] as const;
+    });
+    const here = uv();
+    const cocHere = cocAt(here);
+    const litBlur = Fn(() => {
+      const radius = vec2(cocHere.mul(this.bokeh.max(this.tilt.mul(9)))).mul(this.pixel);
+      const sum = vec3(0).toVar();
+      const weight = float(0.0001).toVar();
+      for (const [x, y] of disc) {
+        const at = here.add(vec2(x, y).mul(radius));
+        const w = cocAt(at).max(0.04);
+        sum.addAssign(litAt(at).mul(w));
+        weight.addAssign(w);
+      }
+      return sum.div(weight);
+    })();
+    const blend = smoothstep(float(0.05), float(0.4), cocHere).mul(step(float(0.01), this.bokeh.add(this.tilt)));
+    const lit = vec4(select(blend.greaterThan(0.001), mix(litSharp.rgb, litBlur, blend), litSharp.rgb), 1).add(raysOver);
+    this.bloomPass = bloom(lit, 0.35, 0.4, 0.85);
+    // A warm grade: highlights a touch gold, shadows a touch blue, a little more colour
+    const hdr = add(lit, this.bloomPass).rgb.mul(this.pulse);
+    const lum = hdr.dot(vec3(0.2126, 0.7152, 0.0722));
+    // Split tone after the key frame: cool teal in the shadows, warm gold in the highlights, more colour
+    const graded = mix(vec3(lum), hdr, this.saturation).mul(mix(vec3(0.9, 0.98, 1.06), vec3(1.07, 1.0, 0.9), smoothstep(0, 1.2, lum)));
+    // Depth of field: the tool in hand (within a metre and a half) counts as in focus. Its
+    // passes read the scene's depth as a plain texture (through the pass's own node it came
+    // through as zero there: everything counted as in hand, and nothing blurred)
+    const focused = graded;
+    // After tone mapping: a soft vignette and fine film grain, then anti-aliasing
+    const vignette = smoothstep(float(1.25), float(0.35), uv().sub(0.5).length().mul(1.6)).mul(0.22).add(0.78);
+    const finished = film(vec4(renderOutput(vec4(focused, 1)).rgb.mul(vignette), 1), float(0.035));
+    this.outputs = { high: smaa(finished), low: fxaa(renderOutput(over(colour))) };
+    this.post.outputColorTransform = false;
+    this.post.outputNode = this.outputs.high;
+  }
+
+  /**
+   * Start the GPU. The device asks for big storage buffers (the solver's contacts), but no
+   * bigger than this adapter offers: asking for more than it has fails the whole device (a
+   * phone offers far less than a desktop, and the city never started there). The solver sizes
+   * its buffers to what the device has. `onTextures(share)` as the surface textures come in.
+   */
+  async init(onTextures: (share: number) => void = () => {}): Promise<GPUDevice> {
+    const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
+    if (!gpu && !isSecureContext) throw new Error(`WebGPU needs a secure page (https:// or localhost), and this one is ${location.protocol}//${location.host}`);
+    if (!gpu) throw new Error('WebGPU is not available in this browser');
+    const adapter = await gpu.requestAdapter();
+    if (!adapter) throw new Error('No WebGPU adapter: the browser has WebGPU but could not find a usable GPU');
+    const want = 1 << 30;
+    const backend = this.renderer.backend as unknown as { parameters: { requiredLimits: Record<string, number> } };
+    backend.parameters.requiredLimits = {
+      maxStorageBufferBindingSize: Math.min(want, adapter.limits.maxStorageBufferBindingSize),
+      maxBufferSize: Math.min(want, adapter.limits.maxBufferSize),
+    };
+    this.adapterInfo = adapter.info ? `${adapter.info.vendor}|${adapter.info.architecture}|${adapter.info.device}|${adapter.info.description}` : 'unknown';
+    const [, surfaces] = await Promise.all([
+      this.renderer.init(),
+      loadSurfaces((done, total) => onTextures(done / total)).catch((e: unknown) => {
+        console.warn('Surface textures not loaded; drawing procedural surfaces', e);
+        return null;
+      }),
+    ]);
+    this.surfaces = surfaces;
+    return (this.renderer.backend as unknown as { device: GPUDevice }).device;
+  }
+
+  /**
+   * How dusty the air is (0 clear, 1 thick after a big blast): the sun shafts thicken with it,
+   * so light cuts through the dust of a collapse.
+   */
+  set dust(amount: number) {
+    // (In vacuum there's no air for the light to show in)
+    this.rays.density.value = this.vacuum ? 0 : RAYS_CLEAR + (RAYS_DUSTY - RAYS_CLEAR) * Math.min(1, amount);
+  }
+
+  /** Bloom strength (0.35 normally). */
+  set glow(strength: number) {
+    this.bloomPass.strength.value = strength;
+  }
+
+  setQuality(quality: RenderQuality): void {
+    this.quality = quality;
+    this.post.outputNode = quality === 'low' ? this.outputs.low : this.outputs.high;
+    this.post.needsUpdate = true;
+    this.sun.shadow.mapSize.setScalar(quality === 'high' ? 4096 : 2048);
+    this.rays.raymarchSteps.value = quality === 'high' ? 48 : 24;
+    this.smokePass.setResolutionScale(SMOKE_SCALE[quality]);
+    // (The shadow map takes its new size at its next render: dropping it here left the sun shafts, rebuilt with
+    // the post passes, without one, as three puts the shadow's map back only when it first builds the shadow)
+    this.setResolutionScale(this.resolutionScale);
+  }
+
+  /**
+   * Render resolution as a share of the quality's (1: full): the game lowers it while a thick
+   * cloud of dust slows frames (fill rate is what a blast costs), and raises it again after.
+   */
+  private resolutionScale = 1;
+  private width = 1;
+  private height = 1;
+  /** The device's own resolution share (calibrate.ts: below 1 where even low quality was slow). */
+  baseResolution = 1;
+  setResolutionScale(scale: number): void {
+    this.resolutionScale = scale;
+    // The quality's pixel ratio, or on a small screen (a phone's) as many pixels as its budget: a ratio of 1 on a
+    // phone's 3x display is a third of its resolution each way, and blurry
+    const budget = Math.sqrt(PIXEL_BUDGET[this.quality] / (this.width * this.height));
+    const base = Math.min(devicePixelRatio, Math.max(this.quality === 'high' ? 1.5 : 1, budget)) * this.baseResolution;
+    const ratio = Math.max(0.5, base * scale);
+    if (Math.abs(this.renderer.getPixelRatio() - ratio) < 1e-3) return;
+    this.renderer.setPixelRatio(ratio);
+    this.renderer.setSize(this.width, this.height, false);
+  }
+
+  /**
+   * The voxels: `capacity` bodies drawn from a buffer the solver will own (returned), coloured
+   * per voxel. Body index b is voxel voxelOf[b] (-1: the ground or a spare, not drawn as a voxel).
+   */
+  attachVoxels(capacity: number, city: City): GPUBuffer {
+    const backend0 = this.renderer.backend as unknown as { get(o: object): { buffer?: GPUBuffer } };
+    // Brickfall: the buffers and the material are made once, big enough for every contract, and
+    // reused: a new material per level meant building and compiling its shaders again, a stall of
+    // half a second at every restart. Bodies past this world's are hidden by their paint.
+    if (this.voxels && this.bodies && capacity <= this.allocated) {
+      (this.links!.array as Float32Array).fill(-1);
+      this.links!.needsUpdate = true;
+      (this.heats!.array as Float32Array).fill(-1e4);
+      this.heats!.needsUpdate = true;
+      (this.chars!.array as Float32Array).fill(0);
+      this.chars!.needsUpdate = true;
+      (this.stresses!.array as Float32Array).fill(0);
+      this.stresses!.needsUpdate = true;
+      this.clearScorch();
+      this.setPaints(city, null);
+      const buffer = backend0.get(this.bodies).buffer;
+      if (buffer) return buffer;
+    }
+    capacity = Math.max(capacity, VOXEL_CAPACITY);
+    this.allocated = capacity;
+    if (this.voxels) {
+      this.scene.remove(this.voxels);
+      this.voxels.geometry.dispose();
+      (this.voxels.material as THREE.Material).dispose();
+    }
+    const n = capacity;
+    this.bodies = new THREE.StorageInstancedBufferAttribute(new Float32Array(n * BODY_FLOATS), 4);
+    this.paints = new THREE.StorageInstancedBufferAttribute(new Float32Array(n * 4), 4);
+    this.links = new THREE.StorageInstancedBufferAttribute(new Float32Array(n * 4).fill(-1), 4);
+    this.heats = new THREE.StorageInstancedBufferAttribute(new Float32Array(n).fill(-1e4), 1);
+    this.chars = new THREE.StorageInstancedBufferAttribute(new Float32Array(n), 1);
+    this.stresses = new THREE.StorageInstancedBufferAttribute(new Float32Array(n), 1);
+    this.homes = new THREE.StorageInstancedBufferAttribute(new Float32Array(n * 4), 4);
+    const bodies = storage(this.bodies, 'vec4', (n * BODY_FLOATS) / 4).toReadOnly();
+    const paints = storage(this.paints, 'vec4', n).toReadOnly();
+    const links = storage(this.links, 'vec4', n).toReadOnly();
+    const body = instanceIndex;
+    // A voxel carried by a rigid section (physics.ts proxy) is drawn at the section's pose plus
+    // its offset in the section; its own body waits parked meanwhile
+    const link = links.element(body);
+    const linked = link.w.greaterThanEqual(0);
+    const parent = select(linked, uint(link.w), body);
+    const base = body.mul(BODY_FLOATS / 4);
+    const parentBase = parent.mul(BODY_FLOATS / 4);
+    const ownPos = bodies.element(base.add(B_POS / 4));
+    const parentPos = bodies.element(parentBase.add(B_POS / 4));
+    const rot = bodies.element(parentBase.add(B_ROT / 4)) as unknown as Vec4;
+    const pos = select(linked, vec4(rotate(rot, link.xyz).add(parentPos.xyz), 1), ownPos) as unknown as Vec4;
+    const size = bodies.element(base.add(B_SIZE / 4));
+    const paint = paints.element(body);
+    // The ground and bodies out of play aren't drawn: folded to a point
+    const hidden = select(linked, parentPos.z.lessThan(PARKED_BELOW), ownPos.z.lessThan(PARKED_BELOW).or(size.x.greaterThan(50))).or(paint.w.lessThan(0));
+    // Clear glass is drawn by a mesh of its own (setGlass): see-through, after the rest
+    const clear = abs(mod(paint.w, 16).sub(Mat.Glass)).lessThan(0.5);
+    const local = positionGeometry.mul(size.xyz);
+    const material = new THREE.MeshStandardNodeMaterial();
+    material.positionNode = select(hidden.or(clear), pos.xyz, rotate(rot, local).add(pos.xyz));
+    this.nodes = { bodies, paints, links };
+    const burnt = storage(this.heats, 'float', n).toReadOnly().element(body) as unknown as Float;
+    const home = storage(this.homes, 'vec4', n).toReadOnly().element(body).xyz as unknown as Vec3;
+    const char = storage(this.chars, 'float', n).toReadOnly().element(body) as unknown as Float;
+    const load = storage(this.stresses, 'float', n).toReadOnly().element(body) as unknown as Float;
+    this.shadeVoxels(material, paint, body, size.xyz, home, rot, local, burnt, char, load);
+    const geometry = new THREE.InstancedBufferGeometry();
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    geometry.index = box.index;
+    geometry.setAttribute('position', box.getAttribute('position'));
+    geometry.setAttribute('normal', box.getAttribute('normal'));
+    geometry.instanceCount = n;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.frustumCulled = false;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    this.voxels = mesh;
+    this.setPaints(city, null);
+    const backend = this.renderer.backend as unknown as { createStorageAttribute(a: THREE.BufferAttribute): void; get(o: object): { buffer?: GPUBuffer } };
+    backend.createStorageAttribute(this.bodies);
+    const buffer = backend.get(this.bodies).buffer;
+    if (!buffer) throw new Error('Three.js did not create a GPU buffer for the voxels');
+    return buffer;
+  }
+
+  /**
+   * Bodies carried by a section (`parent`, a body index) at `offsets` (xyz each, in the
+   * section's frame), or let go (parent -1).
+   */
+  setLinks(bodies: ArrayLike<number>, parent: number, offsets?: ArrayLike<number>): void {
+    if (!this.links) return;
+    const a = this.links.array as Float32Array;
+    for (let k = 0; k < bodies.length; k++) {
+      const o = 4 * bodies[k];
+      if (parent < 0) a.set([0, 0, 0, -1], o);
+      else a.set([offsets![3 * k], offsets![3 * k + 1], offsets![3 * k + 2], parent], o);
+    }
+    this.links.needsUpdate = true;
+  }
+
+  /** Balls thrown (bodies `ids`, the spares): drawn as dark steel spheres from the same buffer. */
+  attachBalls(ids: number[]): void {
+    if (!this.bodies) return;
+    if (this.balls && this.ballIds && this.ballIds.count === ids.length) {
+      (this.ballIds.array as Uint32Array).set(ids);
+      this.ballIds.needsUpdate = true;
+      return;
+    }
+    this.balls?.removeFromParent();
+    const n = this.bodies.count / (BODY_FLOATS / 4);
+    const bodies = storage(this.bodies, 'vec4', (n * BODY_FLOATS) / 4).toReadOnly();
+    this.ballIds = new THREE.StorageInstancedBufferAttribute(Uint32Array.from(ids), 1);
+    const which = storage(this.ballIds, 'uint', ids.length).toReadOnly();
+    const base = which.element(instanceIndex).mul(BODY_FLOATS / 4);
+    const pos = bodies.element(base.add(B_POS / 4));
+    const rot = bodies.element(base.add(B_ROT / 4)) as unknown as Vec4;
+    const size = bodies.element(base.add(B_SIZE / 4));
+    const material = new THREE.MeshStandardNodeMaterial({ color: 0x2e3034, metalness: 0.85, roughness: 0.4, flatShading: true });
+    const hidden = pos.z.lessThan(PARKED_BELOW);
+    material.positionNode = select(hidden, pos.xyz, rotate(rot, positionGeometry.mul(size.x)).add(pos.xyz));
+    const source = new THREE.IcosahedronGeometry(0.5, 4);
+    const geometry = new THREE.InstancedBufferGeometry();
+    geometry.index = source.index;
+    geometry.setAttribute('position', source.getAttribute('position'));
+    geometry.setAttribute('normal', source.getAttribute('normal'));
+    geometry.instanceCount = ids.length;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.frustumCulled = false;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    this.balls = mesh;
+  }
+  private balls: THREE.Mesh | null = null;
+  private ballIds: THREE.StorageInstancedBufferAttribute | null = null;
+  /** Bodies the voxel buffers hold (attachVoxels). */
+  private allocated = 0;
+  /** The clear glass's body list (setGlass), kept with its material and refilled per world. */
+  private glassIds: THREE.StorageInstancedBufferAttribute | null = null;
+
+  /**
+   * Char bodies: each of `bodies` to at least `amounts[k]` (or `amount` for all), 0..1. Uploaded at most ten
+   * times a second (update()).
+   */
+  char(bodies: ArrayLike<number>, amounts: ArrayLike<number> | number): void {
+    if (!this.chars || !bodies.length) return;
+    const a = this.chars.array as Float32Array;
+    for (let k = 0; k < bodies.length; k++) {
+      const b = bodies[k];
+      if (b < 0 || b >= a.length) continue;
+      const v = typeof amounts === 'number' ? amounts : amounts[k];
+      if (v > a[b]) a[b] = Math.min(1, v);
+    }
+    this.charDirty = true;
+  }
+
+  /** The load overlay's values: each of `bodies` at `values[k]` (its layer's load), uploaded now. */
+  setStress(bodies: ArrayLike<number>, values: ArrayLike<number>): void {
+    if (!this.stresses) return;
+    const a = this.stresses.array as Float32Array;
+    a.fill(0);
+    for (let k = 0; k < bodies.length; k++) if (bodies[k] >= 0 && bodies[k] < a.length) a[bodies[k]] = values[k];
+    this.stresses.needsUpdate = true;
+  }
+
+  /** A body's char now (0..1). */
+  charOf(body: number): number {
+    return this.chars && body >= 0 ? (this.chars.array as Float32Array)[body] ?? 0 : 0;
+  }
+
+  /** A scorch mark on the ground at `x`, `y`, `radius` m, `strength` 0..1 (the oldest of 16 gives way). */
+  scorchGround(x: number, y: number, radius: number, strength: number): void {
+    const v = this.scorch.array[this.scorchNext] as THREE.Vector4;
+    v.set(x, y, radius, Math.min(1, strength));
+    this.scorchNext = (this.scorchNext + 1) % SCORCHES;
+  }
+
+  private clearScorch(): void {
+    for (const v of this.scorch.array as THREE.Vector4[]) v.set(0, 0, 0, 0);
+    this.scorchNext = 0;
+  }
+
+  /**
+   * Light from a blast or a shot at `at`: a `flash` (intensity I·q, q falling 1 to 0 over `life` s) or a
+   * `flicker` after it (I·q², jittered ±25% and ±0.5·q² m), reaching `reach` m. Takes the dimmest light of the pool.
+   */
+  flashLight(at: ArrayLike<number>, intensity: number, life: number, kind: 'flash' | 'flicker', reach: number): void {
+    let best = 0;
+    let least = Infinity;
+    for (let k = 0; k < this.jobs.length; k++) {
+      const j = this.jobs[k];
+      const now = j.kind === 'off' ? -1 : j.kind === 'fire' ? 0 : this.lights[k].intensity;
+      if (now < least) {
+        least = now;
+        best = k;
+      }
+    }
+    const j = this.jobs[best];
+    // A brighter light already there wins over a dimmer new one
+    if (least > intensity) return;
+    j.kind = kind;
+    j.at.set(at[0], at[1], at[2]);
+    j.t = 0;
+    j.life = life;
+    j.intensity = intensity;
+    const light = this.lights[best];
+    light.distance = reach;
+    light.color.setRGB(1, kind === 'flash' ? 0.5 : 0.4, kind === 'flash' ? 0.2 : 0.1);
+  }
+
+  /**
+   * Step the pool by `dt` s: flashes and flickers fade; lights left free go to `fires` (the nearest first:
+   * xyz each), flickering ±25% at about 8 Hz at `fireIntensity`.
+   */
+  updateLights(dt: number, fires: ArrayLike<number> = [], fireIntensity = 0): void {
+    let fire = 0;
+    for (let k = 0; k < this.jobs.length; k++) {
+      const j = this.jobs[k];
+      const light = this.lights[k];
+      if (j.kind === 'flash' || j.kind === 'flicker') {
+        j.t += dt;
+        const q = Math.max(0, 1 - j.t / j.life);
+        if (q <= 0) j.kind = 'off';
+        else if (j.kind === 'flash') {
+          light.intensity = j.intensity * q;
+          light.position.copy(j.at);
+        } else {
+          const q2 = q * q;
+          light.intensity = j.intensity * q2 * (0.75 + Math.random() * 0.5);
+          light.position.set(j.at.x + (Math.random() - 0.5) * q2, j.at.y + (Math.random() - 0.5) * q2, j.at.z + (Math.random() - 0.5) * q2);
+        }
+      }
+      if (j.kind === 'off' || j.kind === 'fire') {
+        if (fire * 3 + 2 < fires.length) {
+          j.kind = 'fire';
+          const t = performance.now() / 1000;
+          light.position.set(fires[fire * 3], fires[fire * 3 + 1], fires[fire * 3 + 2] + 0.4);
+          light.intensity = fireIntensity * (1 + 0.25 * Math.sin(t * 50 + k * 1.7) * Math.sin(t * 31 + k));
+          light.distance = 8;
+          light.color.setRGB(1, 0.45, 0.12);
+          fire++;
+        } else {
+          j.kind = 'off';
+          light.intensity = 0;
+        }
+      }
+    }
+  }
+
+  /**
+   * Light everything under `root` (but the voxels and the ground) by the sun and the sky alone, not the pool:
+   * call before it first compiles. Classic materials carry the setting over when they're made into node ones.
+   */
+  sunOnly(root: THREE.Object3D): void {
+    this.baseLights ??= lights([this.sun, this.hemi]);
+    const keep = new Set<unknown>([this.voxels?.material, this.groundMaterial]);
+    root.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m) return;
+      for (const x of Array.isArray(m) ? m : [m]) {
+        if (keep.has(x) || (x as { lightsNode?: unknown }).lightsNode) continue;
+        if (x.type === 'MeshBasicMaterial' || x.type === 'MeshBasicNodeMaterial' || x.type === 'SpriteNodeMaterial' || x.type === 'LineBasicMaterial') continue;
+        (x as { lightsNode?: unknown }).lightsNode = this.baseLights;
+      }
+    });
+  }
+
+  /** Bodies burned by the laser at `time` (the world's clock, s): they glow and cool (shadeVoxels). */
+  heat(bodies: ArrayLike<number>, time: number): void {
+    if (!this.heats || !bodies.length) return;
+    const a = this.heats.array as Float32Array;
+    for (let k = 0; k < bodies.length; k++) if (bodies[k] >= 0 && bodies[k] < a.length) a[bodies[k]] = time;
+    this.heats.needsUpdate = true;
+  }
+
+  /** Each body's colour (linear) and material; `voxelOf` maps bodies to voxels (null: before the solver exists, all hidden). */
+  setPaints(city: City, voxelOf: Int32Array | null): void {
+    if (!this.paints) return;
+    const a = this.paints.array as Float32Array;
+    a.fill(-1);
+    const homes = this.homes ? (this.homes.array as Float32Array) : null;
+    if (voxelOf) {
+      const c = new THREE.Color();
+      for (let b = 0; b < voxelOf.length && b < a.length / 4; b++) {
+        const v = voxelOf[b];
+        if (v < 0) continue;
+        c.setHex(city.color[v]);
+        a.set([c.r, c.g, c.b, city.material[v] + 16 * city.exposed[v]], b * 4);
+        if (homes) homes.set(city.position.subarray(3 * v, 3 * v + 3), b * 4);
+      }
+      this.setGlass(city, voxelOf);
+    }
+    this.paints.needsUpdate = true;
+    if (this.homes) this.homes.needsUpdate = true;
+  }
+
+  /**
+   * The clear glass: its bodies (those of `voxelOf` that are glass) drawn from the same buffers
+   * as the voxels, each only by its faces open to the air (a pane's two sides, not the faces
+   * between its voxels), after everything solid, so what's behind shows through: the rooms,
+   * the floors, the far windows. Colour and coverage are premultiplied, as glass works: it reflects the sky (Fresnel: faint head on, a mirror at a
+   * glancing angle) on top of what it lets through, darkened a little and tinted.
+   */
+  private setGlass(city: City, voxelOf: Int32Array): void {
+    const ids: number[] = [];
+    for (let b = 0; b < voxelOf.length; b++) {
+      const v = voxelOf[b];
+      if (v >= 0 && city.material[v] === Mat.Glass && city.exposed[v]) ids.push(b);
+    }
+    if (this.glass && this.glassIds && ids.length <= this.glassIds.count) {
+      (this.glassIds.array as Uint32Array).set(ids);
+      this.glassIds.needsUpdate = true;
+      (this.glass.geometry as THREE.InstancedBufferGeometry).instanceCount = ids.length;
+      this.glass.visible = ids.length > 0;
+      return;
+    }
+    if (this.glass) {
+      this.scene.remove(this.glass);
+      this.glass.geometry.dispose();
+      (this.glass.material as THREE.Material).dispose();
+      this.glass = null;
+    }
+    if (!this.nodes) return;
+    const { bodies, paints, links } = this.nodes;
+    const room = Math.max(ids.length, GLASS_CAPACITY);
+    const list = new Uint32Array(room);
+    list.set(ids);
+    this.glassIds = new THREE.StorageInstancedBufferAttribute(list, 1);
+    const which = storage(this.glassIds, 'uint', room).toReadOnly();
+    const body = which.element(instanceIndex);
+    const link = links.element(body);
+    const linked = link.w.greaterThanEqual(0);
+    const parent = select(linked, uint(link.w), body);
+    const ownPos = bodies.element(body.mul(BODY_FLOATS / 4).add(B_POS / 4));
+    const parentPos = bodies.element(parent.mul(BODY_FLOATS / 4).add(B_POS / 4));
+    const rot = bodies.element(parent.mul(BODY_FLOATS / 4).add(B_ROT / 4)) as unknown as Vec4;
+    const pos = select(linked, vec4(rotate(rot, link.xyz).add(parentPos.xyz), 1), ownPos) as unknown as Vec4;
+    const size = bodies.element(body.mul(BODY_FLOATS / 4).add(B_SIZE / 4));
+    const paint = paints.element(body);
+    const gone = select(linked, parentPos.z.lessThan(PARKED_BELOW), ownPos.z.lessThan(PARKED_BELOW)).or(paint.w.lessThan(0));
+    // This vertex's face (bit of the open-face mask: -x, +x, -y, +y, -z, +z), and whether it's open
+    const n = normalGeometry;
+    const sideX = abs(n.x).greaterThan(0.5);
+    const top = abs(n.z).greaterThan(0.5);
+    const bit = select(sideX, sign(n.x).mul(0.5).add(0.5), select(top, sign(n.z).mul(0.5).add(4.5), sign(n.y).mul(0.5).add(2.5)));
+    const open = mod(floor(floor(paint.w.div(16)).div(pow(float(2), bit))), 2).greaterThan(0.5);
+    const material = new THREE.MeshPhysicalNodeMaterial({ transparent: true });
+    material.blending = THREE.CustomBlending;
+    material.blendSrc = THREE.OneFactor;
+    material.blendDst = THREE.OneMinusSrcAlphaFactor;
+    material.blendSrcAlpha = THREE.OneFactor;
+    material.blendDstAlpha = THREE.OneMinusSrcAlphaFactor;
+    material.positionNode = select(gone.or(open.not()), pos.xyz, rotate(rot, positionGeometry.mul(size.xyz)).add(pos.xyz));
+    const normal = rotate(rot, n);
+    material.normalNode = transformNormalToView(normal) as unknown as THREE.Node<'vec3'>;
+    // A little grime: the reflection blurs a touch here and there
+    const grime = mx_noise_float(varying(pos.xyz.add(rotate(rot, positionGeometry.mul(size.xyz)))).mul(1.7)).mul(0.5).add(0.5);
+    // Office glazing is coated: it reflects some five times what plain glass does (F0 about
+    // 0.2, not 0.04), tinted by the pane's colour
+    material.colorNode = paint.rgb.mul(0.05) as unknown as THREE.Node<'color'>;
+    material.metalnessNode = float(0);
+    material.specularColorNode = mix(vec3(1), paint.rgb.mul(2.5), 0.5).mul(5) as unknown as THREE.Node<'color'>;
+    material.roughnessNode = grime.mul(grime).mul(0.12).add(0.02);
+    const facing = abs(normalize(cameraPosition.sub(positionWorld)).dot(normalize(varying(normal) as unknown as Vec3)));
+    // (Clamped: the cosine rounds a hair past 1 head on, and a power of a negative is NaN)
+    material.opacityNode = pow(float(1).sub(facing).max(0), 5).mul(0.55).add(0.4).add(grime.mul(0.06));
+    // It writes its depth and normal, so the ambient occlusion sees a pane (with the room's
+    // depth under its normal, the occlusion came out as noise; a zero normal, to leave the
+    // room's, blacked the glass out: the normal target takes no blending)
+    const source = new THREE.BoxGeometry(1, 1, 1);
+    const geometry = new THREE.InstancedBufferGeometry();
+    geometry.index = source.index;
+    geometry.setAttribute('position', source.getAttribute('position'));
+    geometry.setAttribute('normal', source.getAttribute('normal'));
+    geometry.instanceCount = ids.length;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = ids.length > 0;
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 1;
+    this.scene.add(mesh);
+    this.glass = mesh;
+  }
+
+  /**
+   * The voxels' surfaces, in each voxel's own frame: each face textured as what it is (paint.w:
+   * material + 16 × the faces open to the air when built), a face bared since as a break, the
+   * texture tied to the voxel's centre so it stays put as it tumbles; glass, steel and lit
+   * windows procedural. Without textures, procedural brick courses and concrete streaks.
+   */
+  // ---------- occupancy ambient occlusion (volume AO, coarsely) ----------
+  /**
+   * The lot as a coarse volume: half-metre cells over 64 x 64 x 40 m, each how full of standing voxels and settled
+   * rubble it is (0..1). Surfaces look into it along their normal and four tilts of it at three distances, and the
+   * fuller it is out there the less sky and bounce reach them: corners, alcoves, the ground under a heap and inside a
+   * gutted storey go dark, off screen or not (the screen-space AO only sees what's in view).
+   */
+  static readonly OCC = { cell: 0.5, origin: [-32, -32, 0] as const, size: [128, 128, 80] as const };
+  readonly occupancyData = new Uint8Array(CityRenderer.OCC.size[0] * CityRenderer.OCC.size[1] * CityRenderer.OCC.size[2]);
+  readonly occupancy = (() => {
+    const [nx, ny, nz] = CityRenderer.OCC.size;
+    const t = new THREE.Data3DTexture(this.occupancyData, nx, ny, nz);
+    t.format = THREE.RedFormat;
+    t.type = THREE.UnsignedByteType;
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.unpackAlignment = 1;
+    t.needsUpdate = true;
+    return t;
+  })();
+  /** How strong the volume AO is (0: off). */
+  readonly volumeAO = uniform(1);
+
+  /** Fill the volume from what stands (`positions` of fixed voxels) and what's settled (`rubble`: xyz triples). */
+  setOccupancy(city: City, rubble: ArrayLike<number>): void {
+    const { cell, origin, size } = CityRenderer.OCC;
+    const [nx, ny, nz] = size;
+    const d = this.occupancyData;
+    d.fill(0);
+    const add = (x: number, y: number, z: number) => {
+      const i = Math.floor((x - origin[0]) / cell);
+      const j = Math.floor((y - origin[1]) / cell);
+      const k = Math.floor((z - origin[2]) / cell);
+      if (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) return;
+      const c = i + nx * (j + ny * k);
+      d[c] = Math.min(255, d[c] + 32);
+    };
+    for (let v = 0; v < city.count; v++) if (city.state[v] === 0 && !(city.material[v] === Mat.Glass || city.material[v] === Mat.LitGlass)) add(city.position[3 * v], city.position[3 * v + 1], city.position[3 * v + 2]);
+    for (let k = 0; k + 2 < rubble.length; k += 3) add(rubble[k], rubble[k + 1], rubble[k + 2]);
+    this.occupancy.needsUpdate = true;
+  }
+
+  /** The volume AO at world point `p` with unit world normal `n`: 1 open, toward 0.25 shut in. */
+  private occlusionAt(p: Vec3, n: Vec3, light = false): Float {
+    const { cell, origin, size } = CityRenderer.OCC;
+    const lo = vec3(origin[0], origin[1], origin[2]);
+    const extent = vec3(size[0] * cell, size[1] * cell, size[2] * cell);
+    const look = (q: Vec3) => texture3D(this.occupancy, q.sub(lo).div(extent)).r;
+    const t1 = normalize(select(abs(n.z).lessThan(0.9), cross(n, vec3(0, 0, 1)), cross(n, vec3(1, 0, 0)))) as unknown as Vec3;
+    const t2 = cross(n, t1) as unknown as Vec3;
+    const all = [n, normalize(n.add(t1.mul(0.75))), normalize(n.sub(t1.mul(0.75))), normalize(n.add(t2.mul(0.75))), normalize(n.sub(t2.mul(0.75)))] as unknown as Vec3[];
+    // (The light version for the ground, per pixel: straight up and two tilts, two distances)
+    const dirs = light ? [all[0], all[1], all[3]] : all;
+    let occ = float(0) as unknown as Float;
+    for (const [dist, w] of (light
+      ? [
+          [0.6, 0.6],
+          [1.6, 0.4],
+        ]
+      : [
+          [0.45, 0.45],
+          [1.0, 0.33],
+          [2.1, 0.22],
+        ]) as [number, number][])
+      for (const dir of dirs) occ = occ.add(look(p.add(dir.mul(dist))).mul(w / dirs.length)) as unknown as Float;
+    return float(1).sub(clamp(occ.mul(2), 0, 0.8).mul(this.volumeAO)) as unknown as Float;
+  }
+
+  private shadeVoxels(material: THREE.MeshStandardNodeMaterial, paint: Vec4, body: THREE.Node<'uint'>, size: Vec3, home: Vec3, rot: Vec4, local: Vec3, burnt: Float, char: Float, load: Float): void {
+    const id = mod(paint.w, 16);
+    const mask = floor(paint.w.div(16));
+    const is = (m: Mat) => abs(id.sub(m)).lessThan(0.5);
+    const lp = varying(positionGeometry) as unknown as Vec3;
+    const ln = varying(normalGeometry) as unknown as Vec3;
+    const seed = varying(hash(float(body)).mul(97)) as unknown as Float;
+    // The face's own coordinates: `across` along it, `up` the voxel's z (or y on top and bottom)
+    const top = abs(ln.z).greaterThan(0.5);
+    const sideX = abs(ln.x).greaterThan(0.5);
+    const across = select(sideX, lp.y, lp.x) as unknown as Float;
+    const up = select(top, lp.y, lp.z) as unknown as Float;
+    const edge = min(float(0.5).sub(abs(across)), float(0.5).sub(abs(up)));
+    const noise = (s: number, o = 0) => mx_noise_float(lp.mul(s).add(seed).add(o));
+    const rgb = paint.rgb;
+    const glassy = is(Mat.Glass).or(is(Mat.LitGlass));
+
+    // Concrete and plaster: mottled, with streaks running down the faces
+    const streaks = mx_noise_float(vec3(across.mul(6).add(seed), up.mul(0.8), seed)).mul(0.5).add(0.5);
+    // (Three noises shared by every material: each one is a sizeable function, and the shader compiles slower with each)
+    const n3 = noise(3);
+    const n7 = noise(7);
+    const n9 = noise(9);
+    const concrete = rgb.mul(n3.mul(0.1).add(0.95)).mul(mix(float(1), streaks.mul(0.18).add(0.86), select(top, float(0), float(1))));
+    // Brick: four courses a metre, half-brick bond, mortar joints, every brick its own shade
+    const row = floor(up.add(0.5).mul(2));
+    const u = across.add(0.5).mul(BRICKS).add(mod(row, 2).mul(0.5));
+    const brickId = row.mul(7).add(floor(u)).add(seed.mul(13));
+    const mortar = step(fract(up.add(0.5).mul(2)), float(0.1)).max(step(fract(u), float(0.05)));
+    const brick = mix(rgb.mul(hash(brickId).mul(0.3).add(0.82)).mul(n7.mul(0.08).add(0.96)), vec3(0.74, 0.68, 0.58), mortar.mul(select(top, float(0), float(1))));
+    // Glass in a slim frame; roof gravel; steel
+    const frame = (VOXEL >= 0.5 ? step(edge, float(0.07)) : float(0)).max(select(top, float(1), float(0)));
+    const gravel = rgb.mul(hash(floor(lp.mul(18)).dot(vec3(1, 37, 113)).add(seed)).mul(0.4).add(0.8));
+    const glassColour = mix(rgb.mul(0.35), vec3(0.2, 0.21, 0.22), frame);
+    // Leaves: each voxel its own shade, mottled, no texture
+    const leaf = rgb.mul(n9.mul(0.25).add(0.9));
+    // Wood: grain running along the piece (its long way is x or y), rings of darker late wood
+    const grainAt = select(abs(ln.x).greaterThan(0.5), lp.yz, lp.xz);
+    const grain = mx_noise_float(vec3(grainAt.x.mul(1.5).add(seed), grainAt.y.mul(14), seed)).mul(0.5).add(0.5);
+    const wood = rgb.mul(grain.mul(0.35).add(0.78)).mul(select(top, float(1.05), float(1)));
+    // Girders: painted steel gone to rust in patches; rock: mottled and grained; dirt: crumbly; plastic: smooth
+    const rusty = mix(rgb, vec3(0.36, 0.17, 0.08), smoothstep(float(0.15), float(0.55), n3).mul(0.65)).mul(n9.mul(0.1).add(0.95));
+    const rock = rgb.mul(n3.mul(0.3).add(0.85)).mul(n9.mul(0.12).add(0.94));
+    const dirt = rgb.mul(hash(floor(lp.mul(10)).dot(vec3(1, 37, 113)).add(seed)).mul(0.35).add(0.78));
+    const plastic = rgb;
+    let procedural = concrete as unknown as Vec3;
+    procedural = select(is(Mat.Girder), rusty, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Rock), rock, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Dirt), dirt, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Plastic), plastic, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Leaf), leaf, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Wood), wood, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Brick), brick, procedural) as unknown as Vec3;
+    procedural = select(is(Mat.Roof), gravel, procedural) as unknown as Vec3;
+    procedural = select(glassy, glassColour, procedural) as unknown as Vec3;
+
+    let albedo = procedural;
+    let normal = ln;
+    let roughness = select(is(Mat.Roof).or(is(Mat.Dirt)), float(0.95), select(is(Mat.Plastic), float(0.45), float(0.82))) as unknown as Float;
+    if (this.surfaces) {
+      // Which face (bit of the mask: -x, +x, -y, +y, -z, +z), and whether it was open when built
+      const [sx, sy, sz] = [sign(ln.x), sign(ln.y), sign(ln.z)];
+      const bit = select(sideX, sx.mul(0.5).add(0.5), select(top, sz.mul(0.5).add(4.5), sy.mul(0.5).add(2.5)));
+      const finished = mod(floor(mask.div(pow(float(2), bit))), 2).greaterThan(0.5);
+      // Texture coordinates on the face from the voxel's centre and the point on it, the
+      // frame (tangent along u, bitangent along v) right-handed about the face's normal
+      // (From where the voxel was built, not where it is: on a falling piece the texture stays on its faces)
+      const p = varying(home.add(local)) as unknown as Vec3;
+      const st = select(sideX, vec2(p.y.mul(sx), p.z), select(top, vec2(p.x.mul(sz), p.y), vec2(p.x.mul(sy).negate(), p.z)));
+      const tangent = select(sideX, vec3(0, sx, 0), select(top, vec3(sz, 0, 0), vec3(sy.negate(), 0, 0)));
+      const bitangent = select(top, vec3(0, 1, 0), vec3(0, 0, 1));
+      // The layer: the finished face's own surface, a break's rubble (bare concrete for concrete)
+      // (Chosen with integer selects: WGSL wants the layer as an integer, and a float converted
+      // late came through as a float.)
+      const brick = is(Mat.Brick);
+      const plaster = is(Mat.Plaster);
+      const rubble = brick.or(plaster).or(is(Mat.Trim));
+      const which = select(finished, select(brick, int(L_BRICK), select(plaster, int(L_PLASTER), int(L_CONCRETE))), select(rubble, int(L_BROKEN), int(L_CONCRETE)));
+      const metres = select(
+        finished,
+        select(brick, float(SETS[L_BRICK].metres), select(plaster, float(SETS[L_PLASTER].metres), float(SETS[L_CONCRETE].metres))),
+        select(rubble, float(SETS[L_BROKEN].metres), float(SETS[L_CONCRETE].metres)),
+      );
+      const scaled = st.div(metres);
+      const diffuse = texture(this.surfaces.diffuse, scaled).depth(which);
+      const bump = texture(this.surfaces.normal, scaled).depth(which);
+      const arm = texture(this.surfaces.arm, scaled).depth(which);
+      // The voxel's colour is its material's base shifted a little: keep the shift as a tint
+      let base = baseColour(Mat.Concrete);
+      for (const m of [Mat.Brick, Mat.Plaster, Mat.Trim, Mat.Roof, Mat.Steel, Mat.RCConcrete] as Mat[]) base = select(is(m), baseColour(m), base) as unknown as Vec3;
+      const tint = rgb.div(base.max(0.05));
+      const shade = arm.r.mul(0.5).add(0.5).mul(select(finished, float(1), float(0.8))).mul(select(is(Mat.Roof), float(0.5), float(1)));
+      // (Finished brick is drawn as voxel-art courses, after the key frame; a break shows the rubble texture)
+      const textured = glassy.or(is(Mat.Steel)).or(is(Mat.Leaf)).or(is(Mat.Wood)).or(is(Mat.Girder)).or(is(Mat.Rock)).or(is(Mat.Dirt)).or(is(Mat.Plastic)).or(brick.and(finished)).not();
+      albedo = select(textured, diffuse.rgb.mul(tint).mul(shade), procedural) as unknown as Vec3;
+      // Reinforced concrete broken open shows its rebar: rusty dots on a 20 cm grid
+      const bars = fract(st.mul(5));
+      const rebar = smoothstep(float(0.16), float(0.08), bars.sub(0.5).length()).mul(select(is(Mat.RCConcrete).and(finished.not()), float(1), float(0)));
+      albedo = mix(albedo, vec3(0.3, 0.13, 0.06), rebar) as unknown as Vec3;
+      const n = bump.rgb.mul(2).sub(1);
+      const bumped = normalize(tangent.mul(n.x).add(bitangent.mul(n.y)).add(ln.mul(n.z)));
+      normal = select(textured, bumped, ln) as unknown as Vec3;
+      roughness = select(textured, clamp(arm.g, 0.4, 1), roughness) as unknown as Float;
+    }
+    // Edges darkened a touch (as on the demo's blocks), less on glass
+    const shaded = albedo.mul(mix(edgeShade(lp, size, 0.05), float(1), select(glassy, float(0.7), select(is(Mat.Plaster).or(is(Mat.Trim)), float(0.7), float(0.35)))));
+    // Char: toward its own luminance × 0.18, a little patchy, and dull (smooth, not stepped)
+    const charred = clamp(char.mul(n7.mul(0.4).add(1.6)), 0, 1);
+    const sooty = vec3(shaded.dot(vec3(0.2126, 0.7152, 0.0722)).mul(0.18));
+    material.colorNode = mix(shaded, sooty, charred) as unknown as THREE.Node<'color'>;
+    material.normalNode = transformNormalToView(rotate(rot, normal)) as unknown as THREE.Node<'vec3'>;
+    // The volume AO: sky and bounce light shut out of corners, alcoves and gutted storeys
+    // (Worked out per corner and blended over the face: a quarter-metre face needs no finer, and it costs a few
+    // thousand vertices' worth instead of every pixel's)
+    material.aoNode = varying(this.occlusionAt(positionWorld as unknown as Vec3, normalize(rotate(rot, normalGeometry)) as unknown as Vec3)) as unknown as THREE.Node<'float'>;
+    material.metalnessNode = select(glassy, float(0.9), select(is(Mat.Steel), float(0.8), select(is(Mat.Girder), float(0.35), float(0)))).mul(float(1).sub(charred));
+    material.roughnessNode = mix(select(glassy, float(0.06), select(is(Mat.Steel), float(0.38), select(is(Mat.Girder), float(0.6), roughness))), float(1), charred);
+    // Lit windows: warm light from inside, some rooms brighter than others, blinds drawn in some
+    const room = hash(seed.add(3)).mul(0.8).add(0.4);
+    const blind = step(float(0.35), fract(up.add(0.5).mul(1).add(hash(seed.add(5))))).mul(0.5).add(0.5);
+    // Neon (signs, the canopy's fascia, traffic signals) glows its own colour
+    const lit = select(is(Mat.LitGlass).and(frame.lessThan(0.5)), rgb.mul(room.mul(blind).mul(2.2)), vec3(0));
+    // Where the laser cut: white hot at first, cooling through orange to a dull red ember
+    const age = this.heatClock.sub(burnt).max(0);
+    const heat = exp(age.mul(-1 / 0.8)).mul(6).add(exp(age.mul(-1 / 5)).mul(0.7));
+    const glow = mix(vec3(1, 0.2, 0.03), vec3(1, 0.72, 0.4), exp(age.mul(-2.5))).mul(heat);
+    // The load overlay (L): storeys glowing amber as they take load, red near giving way
+    const loaded = mix(vec3(1, 0.75, 0.1), vec3(1, 0.06, 0.02), smoothstep(float(0.85), float(1), load)).mul(smoothstep(float(0.55), float(0.85), load)).mul(this.overlay.mul(1.6));
+    material.emissiveNode = select(is(Mat.Neon), rgb.mul(1.4), lit).add(glow).add(loaded) as unknown as THREE.Node<'color'>;
+  }
+
+  /** The ground: streets, pavements and plazas drawn from world position (city grid of world.ts). */
+  private ground(): THREE.Mesh {
+    const material = new THREE.MeshStandardNodeMaterial({ roughness: 0.9, metalness: 0 });
+    this.groundMaterial = material;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000), material);
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+  private groundMaterial: THREE.MeshStandardNodeMaterial | null = null;
+  private readonly gridPitch = uniform(46);
+  private readonly gridStreet = uniform(16);
+  private readonly gridBlocks = uniform(1);
+  private readonly grassLot = uniform(0);
+  private streetsBuilt = false;
+  private groundMesh!: THREE.Mesh;
+  /** In orbit (setSpace): no air for sun shafts. */
+  private vacuum = false;
+
+  /**
+   * In orbit: no ground and no air (no fog), and the light off the sky black above and the
+   * Earth's blue below; reflections likewise, with the sun's glint.
+   */
+  setSpace(): void {
+    this.vacuum = true;
+    this.rays.density.value = 0;
+    this.groundMesh.visible = false;
+    (this.scene.fog as THREE.FogExp2).density = 0;
+    this.hemi.color.setRGB(0.01, 0.012, 0.02);
+    this.hemi.groundColor.setRGB(0.22, 0.36, 0.62);
+    this.hemi.intensity = 0.55;
+    const env = new THREE.Scene();
+    const dome = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
+    const dir = normalize(positionLocal);
+    const toSun = dir.dot(vec3(this.sunDirection.x, this.sunDirection.y, this.sunDirection.z)).max(0);
+    const earth = vec3(0.1, 0.18, 0.32).mul(smoothstep(-0.05, -0.45, dir.z));
+    dome.colorNode = earth.add(vec3(1, 0.97, 0.92).mul(toSun.pow(300).mul(40))) as unknown as THREE.Node<'color'>;
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(10, 64, 32), dome));
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const target = pmrem.fromScene(env, 0.01);
+    this.scene.environment?.dispose();
+    this.scene.environment = target.texture;
+    this.scene.environmentIntensity = 0.6;
+    pmrem.dispose();
+  }
+
+  /** Draw the city's street grid on the ground. */
+  setStreets(city: City, grassLot = false): void {
+    this.gridPitch.value = city.pitch;
+    this.gridStreet.value = city.street;
+    this.gridBlocks.value = city.blocks;
+    this.grassLot.value = grassLot ? 1 : 0;
+    if (this.streetsBuilt) return;
+    this.streetsBuilt = true;
+    const material = this.groundMaterial!;
+    const pitch = this.gridPitch;
+    const w = this.gridStreet;
+    const block = pitch.sub(w);
+    const half = this.gridBlocks.mul(pitch).sub(w).div(2);
+    const p = positionWorld.xy;
+    const q = p.add(half);
+    const cell = floor(q.div(pitch));
+    const f = q.sub(cell.mul(pitch));
+    const inCity = cell.x.greaterThanEqual(0).and(cell.y.greaterThanEqual(0)).and(cell.x.lessThan(this.gridBlocks)).and(cell.y.lessThan(this.gridBlocks));
+    const sx = f.x.sub(block);
+    const sy = f.y.sub(block);
+    const streetX = sx.greaterThanEqual(0);
+    const streetY = sy.greaterThanEqual(0);
+    const kerb = 3;
+    const roadX = streetX.and(sx.greaterThan(kerb)).and(sx.lessThan(w.sub(kerb)));
+    const roadY = streetY.and(sy.greaterThan(kerb)).and(sy.lessThan(w.sub(kerb)));
+    const road = roadX.or(roadY);
+    const crossing = streetX.and(streetY);
+
+    const n = mx_noise_float(vec3(p.mul(0.35), 0)).mul(0.5).add(0.5);
+    // Fine grain up close, faded to its mean far off: finer than a pixel it only sparkles
+    // (the distant fields and roads came out speckled)
+    const fine = mix(float(0.5), mx_noise_float(vec3(p.mul(4), 1)).mul(0.5).add(0.5), smoothstep(float(90), float(20), positionWorld.sub(cameraPosition).length()));
+    let asphalt = vec3(0.1, 0.095, 0.09).mul(n.mul(0.35).add(0.8)).mul(fine.mul(0.25).add(0.88)) as unknown as Vec3;
+    let paving = vec3(0.5, 0.49, 0.46) as unknown as Vec3;
+    let roadRough = float(0.92) as unknown as Float;
+    if (this.surfaces) {
+      // Real asphalt on the roads, cast concrete on the pavements and plazas, bumped
+      const sa = p.div(SETS[L_ASPHALT].metres);
+      const sc = p.div(SETS[L_CONCRETE].metres);
+      const tar = texture(this.surfaces.diffuse, sa).depth(int(L_ASPHALT));
+      const tarBump = texture(this.surfaces.normal, sa).depth(int(L_ASPHALT));
+      const tarArm = texture(this.surfaces.arm, sa).depth(int(L_ASPHALT));
+      const slabs = texture(this.surfaces.diffuse, sc).depth(int(L_CONCRETE));
+      const slabBump = texture(this.surfaces.normal, sc).depth(int(L_CONCRETE));
+      asphalt = tar.rgb.mul(0.8).mul(tarArm.r.mul(0.4).add(0.6)).mul(n.mul(0.2).add(0.9)) as unknown as Vec3;
+      paving = slabs.rgb.mul(0.85) as unknown as Vec3;
+      roadRough = clamp(tarArm.g, 0.5, 1) as unknown as Float;
+      const onRoad = f.x.sub(block).greaterThan(kerb).and(f.x.sub(block).lessThan(w.sub(kerb))).or(f.y.sub(block).greaterThan(kerb).and(f.y.sub(block).lessThan(w.sub(kerb))));
+      // The bump fades with distance (at a low sun it sparkled along the horizon)
+      const bump = select(onRoad, tarBump.rgb, slabBump.rgb).mul(2).sub(1);
+      const near = smoothstep(float(90), float(25), positionWorld.sub(cameraPosition).length());
+      const bent = mix(vec3(0, 0, 1), vec3(bump.x, bump.y, bump.z.mul(2)), near.mul(select(inCity.or(streetX).or(streetY), float(1), float(0))));
+      material.normalNode = transformNormalToView(normalize(bent)) as unknown as THREE.Node<'vec3'>;
+    }
+    // Lane markings: dashed centre lines and solid edges along each street, zebra crossings at junctions
+    const line = (d: Float, width: number) => smoothstep(float(width), float(width * 0.6), abs(d));
+    const dashX = step(fract(p.y.div(6)), float(0.5));
+    const dashY = step(fract(p.x.div(6)), float(0.5));
+    const along = select(streetX.and(streetY.not()), line(sx.sub(w.div(2)), 0.1).mul(dashX).max(line(sx.sub(kerb + 0.4), 0.07)).max(line(sx.sub(w.sub(kerb + 0.4)), 0.07)), float(0));
+    const alongY = select(streetY.and(streetX.not()), line(sy.sub(w.div(2)), 0.1).mul(dashY).max(line(sy.sub(kerb + 0.4), 0.07)).max(line(sy.sub(w.sub(kerb + 0.4)), 0.07)), float(0));
+    const zebra = (s: Float, t: Float) =>
+      select(t.greaterThan(kerb + 0.3).and(t.lessThan(kerb + 2.6)).or(t.greaterThan(w.sub(kerb + 2.6)).and(t.lessThan(w.sub(kerb + 0.3)))), step(fract(s.div(1.2)), float(0.5)), float(0));
+    const stripes = select(crossing, zebra(sx, sy).max(zebra(sy, sx)), float(0));
+    const paint = clamp(along.max(alongY).max(stripes), 0, 1).mul(fine.mul(0.3).add(0.7));
+    const roadColour = mix(asphalt, vec3(0.78, 0.78, 0.74), paint);
+    // Pavements and plazas: slabs with joints
+    const slab = (size: number) => {
+      const g = fract(p.div(size));
+      const joint = step(min(g.x, g.y), float(0.03)).max(step(float(0.97), max(g.x, g.y)));
+      return mix(float(1), float(0.72), joint).mul(hash(floor(p.div(size)).dot(vec2(1, 57))).mul(0.12).add(0.92));
+    };
+    const pavement = paving.mul(slab(1.5)).mul(n.mul(0.2).add(0.9));
+    const plaza = paving.mul(1.1).mul(slab(2)).mul(n.mul(0.2).add(0.9));
+    const grass = mix(vec3(0.13, 0.2, 0.07), vec3(0.26, 0.3, 0.12), n).mul(fine.mul(0.3).add(0.8));
+    // A garden lot: mown grass in stripes, a worn dirt path up the middle, a gravel drive on the right
+    const mown = step(fract(p.x.div(3)), float(0.5)).mul(0.08).add(0.96);
+    const path = smoothstep(float(1.4), float(0.9), abs(p.x.sub(mx_noise_float(vec3(p.y.mul(0.15), 0, 4)).mul(0.6)))).mul(step(p.y, float(-1)));
+    const drive = step(abs(p.x.sub(9)), float(3)).mul(step(p.y, float(1))).mul(step(float(-8), p.y));
+    const dirt = vec3(0.32, 0.25, 0.17).mul(n.mul(0.3).add(0.8));
+    const gravelDrive = vec3(0.46, 0.43, 0.38).mul(hash(floor(p.mul(9)).dot(vec2(1, 57))).mul(0.3).add(0.8));
+    const garden = mix(mix(grass.mul(mown), dirt, path), gravelDrive, drive);
+    // The drop ring: a painted band, pulsing
+    const zr = p.sub(vec2(this.zone.x, this.zone.y)).length();
+    const ring = smoothstep(float(0.25), float(0.08), abs(zr.sub(this.zone.z))).add(smoothstep(this.zone.z, this.zone.z.sub(0.3), zr).mul(0.18)).mul(step(float(0.5), this.zone.w));
+    const lot = mix(select(inCity, select(this.grassLot.greaterThan(0.5), garden, plaza), grass), vec3(0.95, 0.62, 0.12), ring.min(1));
+    const colour = select(road, roadColour, select(streetX.or(streetY), pavement, lot));
+    // Scorch marks where blasts went off: soot fading out from the middle, ragged at the edge
+    const scorched = Fn(() => {
+      const s = float(0).toVar();
+      const ragged = mx_noise_float(vec3(p.mul(1.3), 7)).mul(0.25);
+      Loop(SCORCHES, ({ i }) => {
+        const m = this.scorch.element(i) as unknown as Vec4;
+        const d = p.sub(m.xy).length().div(m.z.max(0.01)).add(ragged);
+        s.assign(s.max(smoothstep(float(1), float(0.25), d).mul(m.w)));
+      });
+      return s;
+    })();
+    material.colorNode = mix(colour, colour.mul(0.12), scorched) as unknown as THREE.Node<'color'>;
+    material.roughnessNode = mix(select(road, roadRough.sub(paint.mul(0.2)), float(0.85)), float(1), scorched);
+    // The ground under and beside what stands and what lies on it, darkened by the volume AO
+    material.aoNode = this.occlusionAt(positionWorld as unknown as Vec3, vec3(0, 0, 1) as unknown as Vec3, true) as unknown as THREE.Node<'float'>;
+  }
+
+  /**
+   * Draw the race track on the ground instead of streets (track.ts): `field` is its picture
+   * (trackField: per texel of a `size` square over ±`extent` m, the signed distance to the
+   * middle line, round-the-lap distance, corner and turn). Asphalt with white edge lines,
+   * red-and-white kerbs in the bends, gravel run-off outside them, a chequered start line at
+   * x = `startX` on the main straight, a paved pit lane, and mown grass everywhere else.
+   */
+  setTrack(field: Float32Array, size: number, extent: number, width: number, kerb: number, runoff: number, startX: number, pits: [number, number, number, number]): void {
+    const material = this.groundMaterial!;
+    // Half floats (filterable everywhere): distance, the kerb stripes' phase, corner × turn
+    const half = new Uint16Array(size * size * 4);
+    for (let t = 0; t < size * size; t++) {
+      half[4 * t] = THREE.DataUtils.toHalfFloat(field[4 * t]);
+      half[4 * t + 1] = THREE.DataUtils.toHalfFloat(Math.cos(Math.PI * field[4 * t + 1]));
+      half[4 * t + 2] = THREE.DataUtils.toHalfFloat(field[4 * t + 2] * field[4 * t + 3]);
+      half[4 * t + 3] = 0;
+    }
+    const tex = new THREE.DataTexture(half, size, size, THREE.RGBAFormat, THREE.HalfFloatType);
+    tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+    const p = positionWorld.xy;
+    const at = p.add(extent).div(2 * extent);
+    const inside = at.x.greaterThan(0).and(at.y.greaterThan(0)).and(at.x.lessThan(1)).and(at.y.lessThan(1));
+    const f = texture(tex, at);
+    const sd = select(inside, f.r, float(30));
+    const d = abs(sd);
+    const bend = select(inside, f.b, float(0));
+    // How much ground a pixel covers (m): far off, at a grazing angle, metres. Every edge below is softened over
+    // it and every stripe and fine noise fades to its average as a pixel spans it, so far ground blends
+    // instead of breaking into specks and dotted lines (a hard choice per pixel picks one surface at random)
+    const aa = fwidth(d).max(1e-3);
+    const footprint = length(fwidth(p));
+    const cover = (x: Float) => smoothstep(aa.negate(), aa, x);
+    const detail = (metres: number) => smoothstep(float(metres), float(metres * 0.25), footprint);
+    const n = mix(float(0.5), mx_noise_float(vec3(p.mul(0.35), 0)).mul(0.5).add(0.5), detail(3));
+    const far = positionWorld.sub(cameraPosition).length();
+    const fine = mix(float(0.5), mx_noise_float(vec3(p.mul(4), 1)).mul(0.5).add(0.5), smoothstep(float(90), float(20), far));
+    let asphalt = vec3(0.1, 0.095, 0.09).mul(n.mul(0.35).add(0.8)).mul(fine.mul(0.25).add(0.88)) as unknown as Vec3;
+    let paving = vec3(0.5, 0.49, 0.46) as unknown as Vec3;
+    const onTrack = cover(float(width / 2).sub(d));
+    if (this.surfaces) {
+      const sa = p.div(SETS[L_ASPHALT].metres);
+      const sc = p.div(SETS[L_CONCRETE].metres);
+      const tar = texture(this.surfaces.diffuse, sa).depth(int(L_ASPHALT));
+      const tarBump = texture(this.surfaces.normal, sa).depth(int(L_ASPHALT));
+      const tarArm = texture(this.surfaces.arm, sa).depth(int(L_ASPHALT));
+      asphalt = tar.rgb.mul(0.8).mul(tarArm.r.mul(0.4).add(0.6)).mul(n.mul(0.2).add(0.9)) as unknown as Vec3;
+      paving = texture(this.surfaces.diffuse, sc).depth(int(L_CONCRETE)).rgb.mul(0.85) as unknown as Vec3;
+      const bump = tarBump.rgb.mul(2).sub(1);
+      const near = smoothstep(float(90), float(25), far);
+      const bent = mix(vec3(0, 0, 1), vec3(bump.x, bump.y, bump.z.mul(2)), near.mul(onTrack));
+      material.normalNode = transformNormalToView(normalize(bent)) as unknown as THREE.Node<'vec3'>;
+    }
+    // The white edge line (0.12 m either side): sharp where a pixel resolves it; where a pixel is wider, spread
+    // over it at its share of the pixel
+    const edge = smoothstep(aa.add(0.12), float(0.12).sub(aa).max(0), abs(d.sub(width / 2 - 0.45))).mul(float(0.12).div(aa.max(0.12)));
+    // The start line: a chequered band across the main straight (grey where its squares are finer than a pixel)
+    const startBand = abs(p.x.sub(startX)).lessThan(1.2).and(p.y.lessThan(-60));
+    const checker = mix(float(0.5), mod(floor(p.x.div(0.6)).add(floor(p.y.div(0.6))), float(2)), detail(0.6));
+    let track = mix(asphalt, vec3(0.8, 0.8, 0.76), edge.mul(fine.mul(0.3).add(0.7))) as unknown as Vec3;
+    track = select(startBand, mix(vec3(0.04, 0.04, 0.04), vec3(0.85, 0.85, 0.82), checker), track) as unknown as Vec3;
+    // Kerbs: a metre of red, a metre of white, in the bends
+    const inBend = (at: number) => smoothstep(at - 0.05, at + 0.05, abs(bend));
+    const isKerb = cover(float(width / 2 + kerb).sub(d)).mul(inBend(0.5));
+    const stripe = mix(float(0.5), step(float(0), f.g), detail(1));
+    const kerbColour = mix(vec3(0.62, 0.07, 0.05), vec3(0.85, 0.84, 0.8), stripe).mul(fine.mul(0.2).add(0.85));
+    // Gravel run-off on the outside of the bends (the side the car would slide off)
+    const outside = cover(sd.mul(bend).negate());
+    const isGravel = outside.mul(inBend(0.3)).mul(cover(d.sub(width / 2 + kerb))).mul(cover(float(width / 2 + kerb + runoff).sub(d)));
+    const gravel = vec3(0.56, 0.5, 0.4).mul(mx_noise_float(vec3(p.mul(2.5), 3)).mul(detail(0.4)).mul(0.25).add(0.85)).mul(fine.mul(0.3).add(0.8));
+    // Grass, mown in stripes
+    const mown = mix(float(0.5), step(fract(p.x.add(p.y.mul(0.2)).div(12)), float(0.5)), detail(12));
+    const grass = mix(vec3(0.09, 0.16, 0.05), vec3(0.2, 0.26, 0.09), n).mul(mix(float(0.88), float(1.08), mown)).mul(fine.mul(0.3).add(0.8));
+    // The pit lane: paved, behind the pit wall
+    const inPits = p.x.greaterThan(pits[0]).and(p.x.lessThan(pits[2])).and(p.y.greaterThan(pits[1])).and(p.y.lessThan(pits[3]));
+    // Laid from the outside in: grass, pits, gravel, kerbs, the track, each over what's under it by how much of the pixel it covers
+    let colour = select(inPits, paving, grass) as unknown as Vec3;
+    colour = mix(colour, gravel, isGravel) as unknown as Vec3;
+    colour = mix(colour, kerbColour, isKerb) as unknown as Vec3;
+    colour = mix(colour, track, onTrack) as unknown as Vec3;
+    material.colorNode = colour as unknown as THREE.Node<'color'>;
+    material.roughnessNode = mix(float(0.9), float(0.8), max(onTrack, isKerb));
+    material.needsUpdate = true;
+  }
+
+  /**
+   * Reflections and sky light: a dome from the sky's own colours (its horizon, a deeper blue
+   * overhead, the sun's glow and disc, dim ground below), prefiltered for rough and smooth
+   * surfaces. The real sky can't be captured: its clouds are drawn from the player's camera.
+   */
+  setEnvironment(horizon: THREE.Color, sunColour: THREE.Color, sunIntensity: number): void {
+    const env = new THREE.Scene();
+    const dome = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
+    const dir = normalize(positionLocal);
+    const zenith = vec3(0.16, 0.32, 0.62);
+    const sky = mix(vec3(horizon.r, horizon.g, horizon.b), zenith, smoothstep(0.0, 0.7, dir.z));
+    const toSun = dir.dot(vec3(this.sunDirection.x, this.sunDirection.y, this.sunDirection.z)).max(0);
+    const sun = vec3(sunColour.r, sunColour.g, sunColour.b).mul(toSun.pow(8).mul(0.6).add(toSun.pow(400).mul(60)).mul(sunIntensity / 3));
+    const ground = vec3(0.09, 0.085, 0.08);
+    dome.colorNode = mix(ground, sky.add(sun), smoothstep(-0.08, 0.02, dir.z)) as unknown as THREE.Node<'color'>;
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(10, 64, 32), dome));
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const target = pmrem.fromScene(env, 0.01);
+    this.scene.environment?.dispose();
+    this.scene.environment = target.texture;
+    this.scene.environmentIntensity = 0.55;
+    pmrem.dispose();
+  }
+
+  /** A sky HDRI (public/hdri), loaded once. */
+  loadSky(file: string): Promise<THREE.Texture> {
+    let sky = this.skies.get(file);
+    if (!sky) this.skies.set(file, (sky = new HDRLoader().loadAsync(`hdri/${file}`)));
+    return sky;
+  }
+
+  /**
+   * Sky light and reflections from a sky HDRI: equirectangular, its centre column facing +y
+   * and +z up (as scripts/hdri-sun.ts reads it), turned `azimuth` radians about z so its sun
+   * sits where the hour puts it, prefiltered for rough and smooth surfaces, at `intensity`.
+   */
+  setSkyLight(sky: THREE.Texture, azimuth: number, intensity: number): void {
+    const env = new THREE.Scene();
+    const dome = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
+    const dir = normalize(positionLocal);
+    const [c, s] = [Math.cos(-azimuth), Math.sin(-azimuth)];
+    const turned = vec3(dir.x.mul(c).sub(dir.y.mul(s)), dir.x.mul(s).add(dir.y.mul(c)), dir.z);
+    dome.colorNode = texture(sky, equirectUV(vec3(turned.y, turned.z, turned.x))).rgb as unknown as THREE.Node<'color'>;
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(10, 64, 32), dome));
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const target = pmrem.fromScene(env, 0.01);
+    this.scene.environment?.dispose();
+    this.scene.environment = target.texture;
+    this.scene.environmentIntensity = intensity;
+    pmrem.dispose();
+  }
+
+  /** Light and shadow follow the player; the sun from `sunDirection`. */
+  update(focus: THREE.Vector3, sunColour?: THREE.Color, sunIntensity?: number, fogColour?: THREE.Color): void {
+    const d = this.sunDirection;
+    this.sun.position.copy(focus).addScaledVector(d, 400);
+    this.sun.target.position.copy(focus);
+    // Snap the shadow camera to its texels so shadows don't crawl as the player walks
+    const texel = 220 / this.sun.shadow.mapSize.x;
+    this.sun.target.position.set(Math.round(focus.x / texel) * texel, Math.round(focus.y / texel) * texel, 0);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(d, 400);
+    if (sunColour) {
+      this.sun.color.copy(sunColour);
+      this.rayColour.value.copy(sunColour);
+    }
+    if (sunIntensity !== undefined) this.sun.intensity = sunIntensity;
+    if (fogColour) (this.scene.fog as THREE.FogExp2).color.copy(fogColour);
+    // Char reaches the GPU at most ten times a second (the whole buffer goes up each time)
+    const now = performance.now();
+    if (this.charDirty && this.chars && now - this.charAt > 100) {
+      this.chars.needsUpdate = true;
+      this.charDirty = false;
+      this.charAt = now;
+    }
+  }
+
+  /**
+   * One plain render first: it makes the sun's shadow map, which the sun shafts are built
+   * against (they fail to build without it).
+   */
+  warm(): void {
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  resize(width: number, height: number): void {
+    this.width = width;
+    this.height = height;
+    // (The pixel ratio can depend on the size: see setResolutionScale)
+    this.setResolutionScale(this.resolutionScale);
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Depth of field for this frame: in focus at `distance` m, sharp for `range` m either side,
+   * bokeh `amount` (0: none). Eased by the caller.
+   */
+  setFocus(distance: number, range: number, amount: number): void {
+    this.focus.value = distance;
+    this.focalRange.value = range;
+    this.bokeh.value = amount;
+  }
+
+  render(): void {
+    // Where the sun is on screen, for its rays, and how much it's in front
+    const cam = this.camera;
+    const forward = cam.getWorldDirection(this.scratchV);
+    const facing = forward.dot(this.sunDirection);
+    this.sunFade.value = THREE.MathUtils.smoothstep(facing, 0, 0.35);
+    const p = this.scratchP.copy(cam.position).addScaledVector(this.sunDirection, 1000).project(cam);
+    this.sunScreen.value.set((p.x + 1) / 2, (1 - p.y) / 2);
+    this.aspect.value = cam.aspect;
+    const size = this.renderer.getDrawingBufferSize(this.scratchSize);
+    this.pixel.value.set(1 / Math.max(1, size.x), 1 / Math.max(1, size.y));
+    this.post.render();
+  }
+  private readonly scratchV = new THREE.Vector3();
+  private readonly scratchP = new THREE.Vector3();
+  private readonly scratchSize = new THREE.Vector2();
+}
