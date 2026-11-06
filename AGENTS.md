@@ -4,7 +4,7 @@ A first-person voxel demolition game on [Patch](https://patch.gg), in TypeScript
 
 ## Missing sounds
 
-The release's recorded sound effects aren't in this repo: their licences allow them inside the game but not in a repo. `public/audio/` holds only the music. For each missing take, `vite.config.ts` serves and builds a tenth of a second of silence (`tools/silence.*`), so the game builds, runs and passes `pch check` as it is, but blasts and impacts sound thin. A file you put in `public/audio/` replaces its stand-in. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every file, its original source and licence, and how to drop sounds in. `node tools/open-sounds.mjs <clone of patch/voxel-destruction>` fills 67 of the 86 recorded names with open sounds. Never commit sounds whose licence bars passing them on.
+The release's recorded sound effects aren't in this repo: their licence allows them inside the game but not in a repo. `public/audio/` holds only the generated horn, whistle and music. For each missing take, `vite.config.ts` serves and builds a tenth of a second of silence (`tools/silence.*`), so the game builds, runs and passes `pch check` as it is, but blasts and impacts sound thin. A file you put in `public/audio/` replaces its stand-in. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every file, its original source and licence, and how to drop sounds in. `node tools/open-sounds.mjs <clone of patch/voxel-destruction>` fills 67 of the 86 recorded names with open sounds. Never commit sounds whose licence bars passing them on.
 
 ## Run
 

@@ -13,11 +13,11 @@ On Patch as `blendi/brickfall`. Built on [three-voxel-destruction](https://githu
 
 ## Missing sounds
 
-**This repo has no recorded sound effects.** The release's 90 recorded sounds are licensed for the game only, so they can't be passed on in a repo. The game runs without them: the build puts a moment of silence in place of each missing file, and the synthesised layers and the music still play. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every one: what it is, where the original came from, its licence, and how to drop a sound in. One command fills 67 of them with open sounds of the same names from Patch's voxel destruction block.
+**This repo has none of the release's recorded sound effects.** Its 86 recorded sounds are licensed for the game only, so they can't be passed on in a repo. The game runs without them: the build puts a moment of silence in place of each missing file, and the synthesised layers and the music still play. [MISSING_ASSETS.md](MISSING_ASSETS.md) lists every one: what it is, where the original came from, its licence, and how to drop a sound in. One command fills 67 of them with open sounds of the same names from Patch's voxel destruction block.
 
 ## How it's built
 
-A browser game in TypeScript on [three.js](https://threejs.org) (WebGPU), bundled by Vite into a folder of static files. There are no models: the lots, buildings, props, tools and the heist's truck are built from voxels and boxes in code. Physics runs on the GPU in [three-avbd](https://github.com/sbobyn/three-avbd), Steven Bobyn's rigid-body solver. The art files are Poly Haven textures and skies (CC0), two fonts (OFL) and the music bed.
+A browser game in TypeScript on [three.js](https://threejs.org) (WebGPU), bundled by Vite into a folder of static files. There are no models: the lots, buildings, props, tools and the heist's truck are built from voxels and boxes in code. Physics runs on the GPU in [three-avbd](https://github.com/sbobyn/three-avbd), Steven Bobyn's rigid-body solver. The art files are Poly Haven textures and skies (CC0), two fonts (OFL), and the generated music bed, horn and whistle.
 
 ## Run it
 
@@ -35,4 +35,4 @@ Controls: WASD move, mouse look (click to capture, Esc to pause), left click use
 
 ## Licence
 
-The code is MIT ([LICENSE](LICENSE)): Steven Bobyn's engine and Patch's game on top. Textures and skies are CC0 (Poly Haven), the fonts OFL 1.1, three.js and three-avbd MIT, with their texts in [public/LICENSES/](public/LICENSES). The music bed was generated for this game. [CREDITS.md](CREDITS.md) has the details. Sounds you add keep their own licences.
+The code is MIT ([LICENSE](LICENSE)): Steven Bobyn's engine and Patch's game on top. Textures and skies are CC0 (Poly Haven), the fonts OFL 1.1, three.js and three-avbd MIT, with their texts in [public/LICENSES/](public/LICENSES). The music bed, horn and whistle were generated for this game. [CREDITS.md](CREDITS.md) has the details. Sounds you add keep their own licences.

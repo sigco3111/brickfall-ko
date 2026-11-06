@@ -1,8 +1,8 @@
 # Missing assets
 
-Brickfall's release on Patch has 90 recorded sounds (180 files) that this repo leaves out. Their licences let them ship inside the game but not be handed on as files, so they can't sit in a repo anyone can download. Everything else the release has is here.
+Brickfall's release on Patch has 86 recorded sounds (172 files) that this repo leaves out, all cut from one commercial sound library. Its licence lets them ship inside the game but not be handed on as sounds, so they can't sit in a repo anyone can download. Everything else the release has is here.
 
-**The game runs without them.** For each take that's missing, `vite.config.ts` puts a tenth of a second of silence (`tools/silence.ogg`, `.m4a`) in its place, in `pnpm dev` and in the build, and `pnpm build` warns how many. So the game never asks for a file that isn't there, and `pch check` passes. The synthesised layers (sub thumps, cracks, rumble, steps, glass tinkle, alarms, engines) and the music still play; explosions, impacts and the round's horn and whistle are quiet until you add sounds back. Once a file is in `public/audio/`, the real one is used and its stand-in goes.
+**The game runs without them.** For each take that's missing, `vite.config.ts` puts a tenth of a second of silence (`tools/silence.ogg`, `.m4a`) in its place, in `pnpm dev` and in the build, and `pnpm build` warns how many. So the game never asks for a file that isn't there, and `pch check` passes. The synthesised layers (sub thumps, cracks, rumble, steps, glass tinkle, alarms, engines) and the music still play; explosions, impacts and debris are quiet until you add sounds back. Once a file is in `public/audio/`, the real one is used and its stand-in goes.
 
 ## The quick fix: open sounds of the same names
 
@@ -13,7 +13,7 @@ git clone https://git-staging.patch.gg/patch/voxel-destruction.git ../voxel-dest
 node tools/open-sounds.mjs ../voxel-destruction
 ```
 
-The script copies only files that are missing, and lists what's still missing. Then copy the credit line of each copied sound from the block's `CREDITS.txt` (it lists them under "used in") into `CREDITS.md`, `public/CREDITS.md` and `public/patch-credits.js`, since CC-BY asks for credit. The other 19 (`boom`, `boom_tail`, `thud`, `plaster_*`, `groan_masonry`), the horn and the whistle need sounds from elsewhere: Kenney's CC0 packs (https://kenney.nl/assets/impact-sounds), Freesound searches filtered to CC0 (https://freesound.org/search/?f=license:%22Creative+Commons+0%22), or Patch's asset library (`search_assets` with `type: ["audio"]`).
+The script copies only files that are missing, and lists what's still missing. Then copy the credit line of each copied sound from the block's `CREDITS.txt` (it lists them under "used in") into `CREDITS.md`, `public/CREDITS.md` and `public/patch-credits.js`, since CC-BY asks for credit. The other 19 (`boom`, `boom_tail`, `thud`, `plaster_*`, `groan_masonry`) need sounds from elsewhere: Kenney's CC0 packs (https://kenney.nl/assets/impact-sounds), Freesound searches filtered to CC0 (https://freesound.org/search/?f=license:%22Creative+Commons+0%22), or Patch's asset library (`search_assets` with `type: ["audio"]`).
 
 ## How to drop a sound in
 
@@ -126,11 +126,6 @@ SONNISS_DIR=/path/to/sonniss node build.mjs
 | `public/audio/groan_masonry_1.ogg`, `.m4a` | Loaded masonry groaning | 2018: Gregor Quendel - Designed Rocks | `Designed Rocks - EVO19 - Texture - Filtered 4.wav`, from 13.7 s for 2 s | no |
 | `public/audio/groan_masonry_2.ogg`, `.m4a` | Loaded masonry groaning | 2020: Wav Junction Sound Effects - Rocks | `0119_Rock_Quick_Drag_On_Rock_029.wav`, from 0.73 s for 0.7 s | no |
 
-## Generated sounds
+## In the repo
 
-| Path | What it is | Where to get it | Licence |
-|---|---|---|---|
-| `public/audio/horn_1.ogg`, `.m4a`, `public/audio/horn_2.ogg`, `.m4a` | The air horn that starts a round, two takes | Generated with ElevenLabs Sound Effects v2 (https://elevenlabs.io/sound-effects): "construction site air horn, one long loud blast, no music", 1.5 s, prompt influence 0.6 (add "variation" for the second take). Or any CC0 air horn. | ElevenLabs' terms (https://elevenlabs.io/sound-effects-terms) let output go into a game but not be made available as isolated audio files, so it's left out. Generate your own under your own account, and keep it out of git. |
-| `public/audio/whistle_1.ogg`, `.m4a`, `public/audio/whistle_2.ogg`, `.m4a` | The whistle at the end of a round, two takes | The same, with "referee style long whistle blow signalling the end, outdoors, no music", 1.2 s. Or any CC0 whistle. | As above |
-
-The music bed (`public/audio/music_1.*`) is in the repo: it was generated for Brickfall with Sonilo v1.1, whose terms assign its rights in the output to whoever made it.
+The air horn and whistle (`public/audio/horn_*`, `whistle_*`), generated with ElevenLabs Sound Effects v2, and the music bed (`public/audio/music_1.*`), generated with Sonilo v1.1, were made for Brickfall and are in the repo.

@@ -21,12 +21,13 @@ This file covers what's in this repo. `public/CREDITS.md` ships with the game an
 | Skies: Qwantani late afternoon and Qwantani sunset (puresky, 1k) | `public/hdri/` | Poly Haven | CC0 |
 | Fonts: Anton and Inter | installed from npm (Fontsource) into the build | The Anton Project Authors, The Inter Project Authors | SIL OFL 1.1 (`public/LICENSES/`) |
 | Music bed, a "demolition crew" groove, looped | `public/audio/music_1.*` | Generated for this game with Sonilo v1.1 | Generated for Patch |
+| Air horn and whistle | `public/audio/horn_*`, `public/audio/whistle_*` | Generated for this game with ElevenLabs Sound Effects v2 | Generated for Patch |
 | Levels, buildings, props, tools and machines | code | Built from voxels and boxes for this game | MIT |
 | Synthesised sounds (sub thumps, cracks, rumble, steps, glass tinkle, alarms, engines) | `src/audio.ts` | Brickfall and three-voxel-destruction | MIT |
 | Needs-WebGPU backdrop and favicon | `public/needs-webgpu.jpg`, `public/favicon.svg` | A frame of the game; drawn for it | MIT |
 
 ## Left out
 
-90 recorded sounds: 86 cut from the Sonniss GDC Game Audio Bundle (licensed for use in games, not for passing on), and the air horn and whistle, generated with ElevenLabs Sound Effects (whose terms don't allow making output available as isolated files). [MISSING_ASSETS.md](MISSING_ASSETS.md) has each one and where to get it.
+86 recorded sounds, cut from the Sonniss GDC Game Audio Bundle (licensed for use in games, not for passing on). [MISSING_ASSETS.md](MISSING_ASSETS.md) has each one and where to get it.
 
 Added to Patch by Patch. The author of three-voxel-destruction can claim this listing.
