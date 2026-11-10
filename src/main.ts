@@ -2176,9 +2176,17 @@ function screenOf(at: ArrayLike<number>): [number, number] | null {
   return [((toScreen.x + 1) / 2) * innerWidth, ((1 - toScreen.y) / 2) * innerHeight];
 }
 /** Points for an event (multiplied by the combo), with a popup where it happened. */
+/** Tests (?test): what was awarded under each label, before the combo (how many times, how many points). */
+const scoreBy: Record<string, { n: number; points: number }> = {};
 function award(points: number, at: ArrayLike<number> | null, label?: string, size: 'small' | 'big' | 'huge' = 'small', quiet = false): void {
   if (phase !== 'play' && phase !== 'grace' && phase !== 'free') return;
   if (points <= 0) return;
+  if (TESTING) {
+    const key = `${label ?? 'plain'}${quiet ? ' (quiet)' : ''}`;
+    const row = (scoreBy[key] ??= { n: 0, points: 0 });
+    row.n++;
+    row.points += points;
+  }
   if (quiet) {
     game.score += Math.round(points * game.combo);
     return;
@@ -3761,7 +3769,9 @@ async function readDebris(): Promise<void> {
       laidEarly += early.length;
       if (early.length) unsettled = true;
     }
-    if (TESTING && physics.sections.size) collapseLog.push({ f: physicsSteps, what: 'census', ...census, short: crumbleShort, loose: physics.loose });
+    if (TESTING && params.has('sections') && physics.sections.size) collapseLog.push({ f: physicsSteps, what: 'census', ...census, short: crumbleShort, loose: physics.loose });
+    // (Nobody may be reading it: Patch's own test runs under the flag too)
+    if (collapseLog.length > 20000) collapseLog.splice(0, 10000);
     crumbleShort = 0;
     rbLap('rb.freeze');
     // Over the budget (with some slack, so the sort runs now and then, not every readback): down to 92% of it
@@ -3955,7 +3965,10 @@ async function readDebris(): Promise<void> {
         if (count > 200) {
           sounds.impact(Sounds.material(city.material[first]), Math.min(1, 0.3 + count / 3000), distance, 0, [pose[0], pose[1], pose[2]]);
           addTrauma(Math.min(0.6, count / 5000) / (1 + distance / 30));
-          award(Math.round(count * 0.5), at.toArray(), 'IMPACT', count > 1500 ? 'big' : 'small');
+          // (Scored as 1.6 scored it, so bests still compare: half a point a voxel of what a slam left whole then, and a
+          // hard slam sent up to half the piece to dust before it was counted)
+          const left = v > 4 ? 1 - Math.min(0.5, (v - 3) / 10) : 1;
+          award(Math.round(count * 0.5 * left), at.toArray(), 'IMPACT', count > 1500 ? 'big' : 'small');
         }
         if (v > CRUSH_SPEED) for (let i = 0; i < low.length; i += 9) crushAt.push({ at: [low[i], low[i + 1], low[i + 2] - gap - 0.3], radius: RADII.crush(v)[0], radii: RADII.crush(v), push: v * 0.12, core: 0.35 });
       };
@@ -5453,6 +5466,8 @@ const hook = {
   },
   sectionCount: () => physics.sections.size,
   collapseLog: () => collapseLog.splice(0),
+  /** Tests: the score so far, and what was awarded under each label. */
+  scoreBy: () => ({ score: game.score, combo: game.combo, by: scoreBy }),
   /**
    * Tests: what has moved since the last call, of everything drawn (a heap at rest must not stir): how many voxels
    * are somewhere else by more than 2 mm, the furthest, and what's still loose or carried.
@@ -5605,6 +5620,9 @@ const hook = {
     turning = { from: [player.yaw, player.pitch], to: [player.yaw + Math.atan2(Math.sin(yaw - player.yaw), Math.cos(yaw - player.yaw)), pitch], t: 0, seconds };
   },
 };
+// The collapse tests' own hooks (the detectors, stepping by hand, the logs) are there only under ?test: a release
+// played as it is carries none of them
+if (!TESTING) for (const k of ['manual', 'drain', 'probe', 'restProbe', 'ownerCheck', 'blastMany', 'collapseLog', 'scoreBy', 'sectionCount', 'targetBox']) delete (hook as Record<string, unknown>)[k];
 Object.assign(window, { __game: hook });
 
 /** ?patch-test=1: play the first contract by itself and say what worked. */
