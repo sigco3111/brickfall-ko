@@ -1,6 +1,6 @@
 {
   "project": "blendi/brickfall",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "channel": "public",
   "files": "dist",
   "recipe": {

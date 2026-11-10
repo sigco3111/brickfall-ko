@@ -5,7 +5,7 @@ engine: three.js
 
 # Brickfall
 
-A short first-person demolition game. Each contract is one small lot and a clock: knock out what holds a building up and watch the storeys come down, brick by brick. Every voxel is a real rigid body, simulated on your graphics card, so walls crack along their seams, falling sections shatter where they land and the rubble stays where it settles.
+A short first-person demolition game. Each contract is one small lot and a clock: knock out what holds a building up and watch the storeys come down, brick by brick. Every voxel is a real rigid body, simulated on your graphics card, so walls crack along their seams, falling sections crumble from the side that lands, layer by layer, and the rubble stays where it settles.
 
 Four modes (Rush, Blowdown, Salvage and Sandbox), eleven lots from a starter home to an eleven-storey tower, a sea pier and a church steeple, and tools from a sledge and a hand cannon to cutter charges, a jackhammer, rockets, pipe bombs and planks.
 
