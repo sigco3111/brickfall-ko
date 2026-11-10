@@ -10,6 +10,9 @@ import { Solver } from 'three-avbd/advanced';
 import { sphere } from 'three-avbd/advanced';
 import { type City, Mat, State, VOXEL, voxelAt } from './world.ts';
 
+// A body's other poses in the solver's layout (three-avbd's gpu/layout: not exported): where the step began, and where it would coast to
+const [B_INITIAL_POS, B_INITIAL_ROT, B_INERTIAL_POS, B_INERTIAL_ROT] = [8, 12, 24, 28];
+
 /** Bodies kept spare for things thrown into the world. */
 export const SPARE = 256;
 /**
@@ -34,6 +37,28 @@ export interface Section {
   pose: number[];
   /** Since when it has barely moved (s), for breaking a piece that stays whole too long. */
   slowSince?: number;
+  /** It has come down on something (the slam's sound, score and crush are given once). */
+  landed?: boolean;
+  /** How fast it is still being driven into what it landed on (m/s): what's left of its fall's energy to crumble by. */
+  crush?: number;
+  /** It carries another piece and has begun to give way under it. */
+  giving?: boolean;
+  /** Its velocity at the readback before the last. */
+  before?: [number, number, number];
+}
+/** What a section lost in one bite (CityPhysics.bite). */
+export interface Bite {
+  /** Voxels let go as bodies, and voxels crushed to dust, each with where they were (xyz each, m). */
+  loose: number[];
+  dust: number[];
+  dustAt: Float32Array;
+  /** Layers taken, and how fast what's left is still driven on (m/s). */
+  layers: number;
+  speed: number;
+  /** Nothing of the section is left. */
+  gone: boolean;
+  /** Voxels it would have taken had there been room for them as bodies. */
+  short: number;
 }
 /** Where bodies out of play wait: far below, a few metres apart so no broadphase cell crowds. */
 const PARKED_Z = -5000;
@@ -181,6 +206,48 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   out[3u * k] = bodies[base + ${B_POS / 4}u];
   out[3u * k + 1u] = bodies[base + ${B_VEL / 4}u];
   out[3u * k + 2u] = bodies[base + ${B_ROT / 4}u];
+  // (The spins after all of those, so the first three stay as they were laid out)
+  out[3u * count.x + k] = bodies[base + ${B_ANGVEL / 4}u];
+}
+`;
+
+/**
+ * Bodies put where a section's body carried them (bite): the section's body as it was a moment ago (`was`, its ten
+ * vec4), and per body its place in that body's frame and how it moves on. Done here, on the bodies as they are now:
+ * the CPU only knows where the section was at the last readback, a few frames ago, and a voxel let go there jumped.
+ */
+const letGoWGSL = /* wgsl */ `
+struct Item { place: vec4f, push: vec4f }  // place: xyz in the section's frame, the share of its spin kept; push: velocity added, the share of its motion kept
+@group(0) @binding(0) var<storage, read> which: array<u32>;
+@group(0) @binding(1) var<storage, read> items: array<Item>;
+@group(0) @binding(2) var<storage, read> was: array<vec4f>;
+@group(0) @binding(3) var<storage, read_write> bodies: array<vec4f>;
+@group(0) @binding(4) var<uniform> count: vec4u;
+
+fn turn(q: vec4f, v: vec3f) -> vec3f {
+  let t = 2.0 * cross(q.xyz, v);
+  return v + q.w * t + cross(q.xyz, t);
+}
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let k = gid.x;
+  if (k >= count.x) { return; }
+  let base = which[k] * ${BODY_FLOATS / 4}u;
+  let it = items[k];
+  let q = was[${B_ROT / 4}];
+  let r = turn(q, it.place.xyz);
+  let pos = was[${B_POS / 4}].xyz + r;
+  let spin = was[${B_ANGVEL / 4}].xyz;
+  let vel = (was[${B_VEL / 4}].xyz + cross(spin, r)) * it.push.w + it.push.xyz;
+  bodies[base + ${B_POS / 4}u] = vec4f(pos, bodies[base + ${B_POS / 4}u].w);
+  bodies[base + ${B_ROT / 4}u] = q;
+  bodies[base + ${B_INITIAL_POS / 4}u] = vec4f(pos, bodies[base + ${B_INITIAL_POS / 4}u].w);
+  bodies[base + ${B_INITIAL_ROT / 4}u] = q;
+  bodies[base + ${B_INERTIAL_POS / 4}u] = vec4f(pos, bodies[base + ${B_INERTIAL_POS / 4}u].w);
+  bodies[base + ${B_INERTIAL_ROT / 4}u] = q;
+  bodies[base + ${B_VEL / 4}u] = vec4f(vel, vel.z);
+  bodies[base + ${B_ANGVEL / 4}u] = vec4f(spin * it.place.w, bodies[base + ${B_ANGVEL / 4}u].w);
 }
 `;
 
@@ -944,25 +1011,62 @@ export class CityPhysics {
     return true;
   }
 
+  /** Whether the point (m) is inside `sec`'s box (where it was last read back), `margin` m out. */
+  private holds(sec: Section, x: number, y: number, z: number, margin: number): boolean {
+    const p = sec.pose;
+    // (The point in the box's frame, turned back by its quaternion, with nothing made on the way: a collapse asks this
+    // tens of thousands of times a readback)
+    const [dx, dy, dz] = [x - p[0], y - p[1], z - p[2]];
+    const [qx, qy, qz, qw] = [-p[3], -p[4], -p[5], p[6]];
+    const tx = 2 * (qy * dz - qz * dy);
+    const ty = 2 * (qz * dx - qx * dz);
+    const tz = 2 * (qx * dy - qy * dx);
+    return (
+      Math.abs(dx + qw * tx + (qy * tz - qz * ty)) <= sec.size[0] / 2 + margin &&
+      Math.abs(dy + qw * ty + (qz * tx - qx * tz)) <= sec.size[1] / 2 + margin &&
+      Math.abs(dz + qw * tz + (qx * ty - qy * tx)) <= sec.size[2] / 2 + margin
+    );
+  }
+
+  /** Whether the point (m) is inside section `slot`'s box (where it was last read back), half a voxel out. */
+  inBox(slot: number, x: number, y: number, z: number): boolean {
+    const sec = this.sections.get(slot);
+    return !!sec && this.holds(sec, x, y, z, VOXEL / 2);
+  }
+
   /** Whether the point (m) is inside a section's box (where it was last read back), other than `except`. */
   inSection(x: number, y: number, z: number, except = -1): boolean {
-    const h = VOXEL / 2;
-    for (const sec of this.sections.values()) {
-      if (sec.slot === except) continue;
-      const [c, q] = [sec.pose.slice(0, 3), sec.pose.slice(3, 7)];
-      const l = rotate([-q[0], -q[1], -q[2], q[3]], [x - c[0], y - c[1], z - c[2]]);
-      if (Math.abs(l[0]) <= sec.size[0] / 2 + h && Math.abs(l[1]) <= sec.size[1] / 2 + h && Math.abs(l[2]) <= sec.size[2] / 2 + h) return true;
+    for (const sec of this.sections.values()) if (sec.slot !== except && this.holds(sec, x, y, z, VOXEL / 2)) return true;
+    return false;
+  }
+
+  /**
+   * Whether another section lies on this one: over its upper face (its middle and a third of the way out each
+   * side, however it leans), anything of another section within `reach` (m) above. A storey's loose bits between
+   * two pieces don't hide the one from the other.
+   */
+  covered(slot: number, pose: ArrayLike<number>, reach = 1.25): boolean {
+    const section = this.sections.get(slot);
+    if (!section || this.sections.size < 2) return false;
+    const q = [pose[3], pose[4], pose[5], pose[6]];
+    const [x, y, z, w] = q;
+    const up = [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)];
+    const axis = Math.abs(up[0]) > Math.abs(up[1]) ? (Math.abs(up[0]) > Math.abs(up[2]) ? 0 : 2) : Math.abs(up[1]) > Math.abs(up[2]) ? 1 : 2;
+    const [b, c] = [(axis + 1) % 3, (axis + 2) % 3];
+    for (const [s, t] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const local = [0, 0, 0];
+      local[axis] = (up[axis] >= 0 ? 1 : -1) * section.size[axis] / 2;
+      local[b] = (s * section.size[b]) / 3;
+      local[c] = (t * section.size[c]) / 3;
+      const r = rotate(q, local);
+      for (let d = 0.15; d <= reach; d += VOXEL) if (this.inSection(pose[0] + r[0], pose[1] + r[1], pose[2] + r[2] + d, slot)) return true;
     }
     return false;
   }
 
-  /** The section whose box holds the point (m), or -1 (Brickfall: tools hit pieces still falling whole). */
-  sectionAt(x: number, y: number, z: number): number {
-    for (const sec of this.sections.values()) {
-      const [c, q] = [sec.pose.slice(0, 3), sec.pose.slice(3, 7)];
-      const l = rotate([-q[0], -q[1], -q[2], q[3]], [x - c[0], y - c[1], z - c[2]]);
-      if (Math.abs(l[0]) <= sec.size[0] / 2 && Math.abs(l[1]) <= sec.size[1] / 2 && Math.abs(l[2]) <= sec.size[2] / 2) return sec.slot;
-    }
+  /** The section whose box holds the point (m), or -1 (Brickfall: tools hit pieces still falling whole); never `except`. */
+  sectionAt(x: number, y: number, z: number, except = -1): number {
+    for (const sec of this.sections.values()) if (sec.slot !== except && this.holds(sec, x, y, z, 0)) return sec.slot;
     return -1;
   }
 
@@ -1010,39 +1114,251 @@ export class CityPhysics {
     return out;
   }
 
+  private letGo: { pipe: GPUComputePipeline; which: GPUBuffer; items: GPUBuffer; was: GPUBuffer; count: GPUBuffer; capacity: number; group: GPUBindGroup } | null = null;
+
+  /**
+   * Put `bodies` where the section's body `slot` carries them, on the GPU: `was` is copied from the body as it is
+   * now, `write()` then rewrites the bodies (their sizes and masses; where they are is only the readback's guess),
+   * and the pass sets each one's place and motion from `was`. `place`: xyz in the section's frame and the share of
+   * its spin kept, `push`: velocity added (xyz) and the share of its motion kept, four floats each per body.
+   */
+  private carryOn(slot: number, bodies: number[], place: Float32Array, push: Float32Array, write: () => void): void {
+    const d = this.device;
+    const n = bodies.length;
+    let g = this.letGo;
+    if (!g || g.capacity < n) {
+      g?.which.destroy();
+      g?.items.destroy();
+      const capacity = Math.max(4096, 2 ** Math.ceil(Math.log2(n)));
+      const pipe = g?.pipe ?? d.createComputePipeline({ layout: 'auto', compute: { module: d.createShaderModule({ code: letGoWGSL }), entryPoint: 'main' } });
+      const which = d.createBuffer({ size: capacity * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      const items = d.createBuffer({ size: capacity * 32, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      const was = g?.was ?? d.createBuffer({ size: BODY_FLOATS * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      const count = g?.count ?? d.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      const group = d.createBindGroup({
+        layout: pipe.getBindGroupLayout(0),
+        entries: [which, items, was, this.bodyBuffer, count].map((buffer, binding) => ({ binding, resource: { buffer } })),
+      });
+      g = this.letGo = { pipe, which, items, was, count, capacity, group };
+    }
+    const copy = d.createCommandEncoder();
+    copy.copyBufferToBuffer(this.bodyBuffer, slot * BODY_FLOATS * 4, g.was, 0, BODY_FLOATS * 4);
+    d.queue.submit([copy.finish()]);
+    write();
+    const items = new Float32Array(n * 8);
+    for (let k = 0; k < n; k++) {
+      items.set(place.subarray(4 * k, 4 * k + 4), 8 * k);
+      items.set(push.subarray(4 * k, 4 * k + 4), 8 * k + 4);
+    }
+    d.queue.writeBuffer(g.which, 0, Uint32Array.from(bodies));
+    d.queue.writeBuffer(g.items, 0, items);
+    d.queue.writeBuffer(g.count, 0, new Uint32Array([n, 0, 0, 0]));
+    const encoder = d.createCommandEncoder();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(g.pipe);
+    pass.setBindGroup(0, g.group);
+    pass.dispatchWorkgroups(Math.ceil(n / 64));
+    pass.end();
+    d.queue.submit([encoder.finish()]);
+  }
+
+  /**
+   * A section crumbles from the face it's coming down on (Brickfall 1.7): its lowest layers are let go as bodies
+   * where they are, moving as they were, and the section goes on as a smaller box round the rest. A landing takes
+   * a bite a readback instead of the whole piece at once, so a storey grinds down into its own rubble.
+   *
+   * `pose` is where it is as far as the CPU knows (centre xyz, quaternion xyzw), `speed` how fast it is driven on
+   * (m/s) and `depth` how far that takes it into what's under it before the next look (m). Layers lie along the
+   * section's own axis nearest to straight down, so the box that's left clears what was let go. Each layer costs
+   * `energy` (J per kg of it, against the weight still behind it): the bite stops where the fall's energy runs
+   * out, and what's left is driven on that much slower. At most `room` voxels become bodies; up to `dustMax` of a
+   * bite goes to dust instead when there's no room, and a bite that still won't fit is cut to the layers that do.
+   * `ride`: what's left keeps its own motion, slowed (it's still falling); otherwise it's sent on along `way` (the
+   * solver had stopped it on what it hit). `scatter`: how fast the let-go voxels are thrown sideways (m/s).
+   * Null if the section has gone.
+   */
+  bite(slot: number, pose: ArrayLike<number>, speed: number, depth: number, o: { energy: number; room: number; dustMax: number; ride: boolean; way: ArrayLike<number>; scatter: number }): Bite | null {
+    const { city } = this;
+    const section = this.sections.get(slot);
+    if (!section) return null;
+    const q = [pose[3], pose[4], pose[5], pose[6]];
+    const [x, y, z, w] = q;
+    // How far up each of the section's axes points (the rotation's bottom row): the layers lie along the steepest
+    const up = [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)];
+    const axis = Math.abs(up[0]) > Math.abs(up[1]) ? (Math.abs(up[0]) > Math.abs(up[2]) ? 0 : 2) : Math.abs(up[1]) > Math.abs(up[2]) ? 1 : 2;
+    const sign = up[axis] >= 0 ? 1 : -1;
+    const steep = Math.max(0.5, Math.abs(up[axis]));
+    const count = section.voxels.length;
+    const off = section.offsets;
+    let low = Infinity;
+    let high = -Infinity;
+    for (let k = 0; k < count; k++) {
+      const hgt = sign * off[3 * k + axis];
+      if (hgt < low) low = hgt;
+      if (hgt > high) high = hgt;
+    }
+    const total = Math.round((high - low) / VOXEL) + 1;
+    const want = Math.max(1, Math.ceil(depth / (VOXEL * steep)));
+    // Layer by layer while the energy lasts: each takes v² down by 2·energy·(its weight / the weight behind it)
+    let v2 = speed * speed;
+    let layers = 0;
+    while (layers < want) {
+      const behind = total - layers - 1;
+      const cost = 2 * o.energy / Math.max(behind, 0.5);
+      if (v2 < cost) break;
+      v2 -= cost;
+      layers++;
+      if (behind <= 0) break;
+    }
+    const none = (short: number): Bite => ({ loose: [], dust: [], dustAt: new Float32Array(0), layers: 0, speed: 0, gone: false, short });
+    if (!layers) return none(0);
+    // What fits: bodies for as many as there's room for, dust for up to dustMax of the bite, fewer layers otherwise
+    let taken: number[] = [];
+    let wanted = 0;
+    for (; layers > 0; layers--) {
+      taken = [];
+      const below = low + (layers - 0.5) * VOXEL;
+      for (let k = 0; k < count; k++) if (sign * off[3 * k + axis] < below) taken.push(k);
+      wanted ||= taken.length;
+      if (taken.length - Math.floor(taken.length * o.dustMax) <= o.room) break;
+      v2 += 2 * o.energy / Math.max(total - layers, 0.5);
+    }
+    if (!layers) return none(wanted);
+    // (Too little left to carry as a box: it all goes)
+    const gone = count - taken.length < 8;
+    if (gone) taken = Array.from({ length: count }, (_, k) => k);
+    const toDust = new Set<number>();
+    for (let over = taken.length - Math.max(0, Math.floor(o.room)); over > 0 && toDust.size < Math.floor(taken.length * o.dustMax) + (gone ? taken.length : 0); ) {
+      const k = taken[Math.floor(Math.random() * taken.length)];
+      if (!toDust.has(k)) {
+        toDust.add(k);
+        over--;
+      }
+    }
+    const takenSet = new Set(taken);
+    const centre = [pose[0], pose[1], pose[2]];
+    const guess = (k: number) => {
+      const r = rotate(q, [off[3 * k], off[3 * k + 1], off[3 * k + 2]]);
+      return [centre[0] + r[0], centre[1] + r[1], centre[2] + r[2]];
+    };
+    const out = Math.sqrt(Math.max(0, v2));
+    const onward = o.ride ? section.velocity.map((c) => (c * out) / Math.max(speed, 1e-3)) : [o.way[0] * out, o.way[1] * out, o.way[2] * out];
+    // Dust first: gone from the section where it was
+    const dust: number[] = [];
+    const dustAt: number[] = [];
+    const loose: [number, number][] = [];
+    for (const k of taken) {
+      if (toDust.has(k)) {
+        dust.push(section.voxels[k]);
+        dustAt.push(...guess(k));
+      } else loose.push([section.voxels[k], k]);
+    }
+    this.onCarry(
+      taken.map((k) => this.body[section.voxels[k]]),
+      -1,
+    );
+    if (dust.length) this.park(dust, State.Gone);
+    // What's left, as a box round it
+    const keep: number[] = [];
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    const h = VOXEL / 2;
+    let mass = 0;
+    if (!gone)
+      for (let k = 0; k < count; k++) {
+        if (takenSet.has(k)) continue;
+        keep.push(k);
+        mass += density(city.material[section.voxels[k]]);
+        for (let a = 0; a < 3; a++) {
+          lo[a] = Math.min(lo[a], off[3 * k + a] - h);
+          hi[a] = Math.max(hi[a], off[3 * k + a] + h);
+        }
+      }
+    const mid = gone ? [0, 0, 0] : [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
+    const size: [number, number, number] = gone ? [VOXEL, VOXEL, VOXEL] : [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
+    const shift = rotate(q, mid);
+    const now = [centre[0] + shift[0], centre[1] + shift[1], centre[2] + shift[2]];
+    // The bodies, in the solver's order: the let-go voxels and the section's own
+    loose.sort((a, b) => this.body[a[0]] - this.body[b[0]]);
+    const bodies = loose.map(([v]) => this.body[v]);
+    const n = loose.length + (gone ? 0 : 1);
+    const place = new Float32Array(n * 4);
+    const push = new Float32Array(n * 4);
+    // (Sideways, across the way it's coming down: thrown out from under it)
+    loose.forEach(([, k], i) => {
+      place.set([off[3 * k], off[3 * k + 1], off[3 * k + 2], 1], 4 * i);
+      const kick = [(Math.random() - 0.5) * 2 * o.scatter, (Math.random() - 0.5) * 2 * o.scatter, (Math.random() - 0.5) * 0.4 * o.scatter];
+      const along = o.ride ? 0 : speed * (0.3 + 0.5 * Math.random());
+      push.set([kick[0] + o.way[0] * along, kick[1] + o.way[1] * along, kick[2] + o.way[2] * along, o.ride ? 1 : 0.3], 4 * i);
+    });
+    if (!gone) {
+      place.set([mid[0], mid[1], mid[2], o.ride ? 1 : 0.6], 4 * loose.length);
+      push.set(o.ride ? [0, 0, 0, out / Math.max(speed, 1e-3)] : [onward[0], onward[1], onward[2], 0], 4 * loose.length);
+    }
+    this.carryOn(slot, gone ? bodies : [...bodies, slot], place, push, () => {
+      if (loose.length) {
+        const rigids = loose.map(([v, k]) => {
+          const b = new Rigid(this.scratch, CUBE, density(city.material[v]), 0.7, guess(k));
+          b.positionAng.set(q);
+          b.velocityLin.set(section.velocity);
+          return b;
+        });
+        for (const [v] of loose) city.state[v] = State.Loose;
+        this.solver.rewriteBodies(bodies, rigids);
+        this.scratch.clear();
+      }
+      const box = gone ? new Rigid(this.scratch, CUBE, 0, 0.7, parked(city.count + slot)) : new Rigid(this.scratch, size.map((s) => s - 0.02) as [number, number, number], (mass * VOXEL ** 3) / (size[0] * size[1] * size[2]), 0.7, now);
+      if (!gone) {
+        box.positionAng.set(q);
+        box.velocityLin.set(onward);
+      }
+      this.solver.rewriteBodies([slot], [box]);
+      this.scratch.clear();
+    });
+    if (loose.length) {
+      const voxels = loose.map(([v]) => v);
+      this.loose += voxels.length;
+      this.looseList.push(...voxels);
+      this.join(voxels, section.bond);
+    }
+    this.markColumn(now[0], now[1], Math.max(...section.size) / 2 + 1.5);
+    this.generation.set(slot, (this.generation.get(slot) ?? 0) + 1);
+    if (gone) {
+      this.sections.delete(slot);
+      this.freeSlots.push(slot);
+    } else {
+      const offsets = new Float32Array(keep.length * 3);
+      keep.forEach((k, i) => {
+        for (let a = 0; a < 3; a++) offsets[3 * i + a] = off[3 * k + a] - mid[a];
+      });
+      section.voxels = keep.map((k) => section.voxels[k]);
+      section.offsets = offsets;
+      section.size = size;
+      section.pose = [...now, q[0], q[1], q[2], q[3]];
+      section.velocity = [onward[0], onward[1], onward[2]];
+      this.onCarry(
+        section.voxels.map((v) => this.body[v]),
+        slot,
+        offsets,
+      );
+    }
+    return { loose: loose.map(([v]) => v), dust, dustAt: Float32Array.from(dustAt), layers, speed: out, gone, short: Math.max(0, wanted - taken.length) + dust.length };
+  }
+
   /**
    * A section breaks where it is (pose: centre xyz, quaternion xyzw; moving at `velocity`):
-   * `loose` of its voxels (a share, the ones nearest `towards`, the impact side) fly on as
-   * bodies, bonded; the rest settle there as rubble. Returns the world positions of its
-   * lowest voxels (what it came down on, for crushing).
+   * `loose` of its voxels (a share, the lowest) fly on as bodies, bonded; the rest are laid
+   * down as rubble exactly where they are, in the section's shape (0: all of it, a piece that
+   * has come to rest). Returns the world positions of its lowest voxels. (Brickfall 1.6 could
+   * also send a share to dust and squash the rest toward its bottom, all in this one step: a
+   * landing storey vanished and a flat heap appeared. Landings crumble a bite at a time now:
+   * bite.)
    */
-  shatter(slot: number, pose: ArrayLike<number>, velocity: ArrayLike<number>, loose: number, dust = 0, squash = 1): Float32Array {
+  shatter(slot: number, pose: ArrayLike<number>, velocity: ArrayLike<number>, loose: number): Float32Array {
     const { city } = this;
     const section = this.sections.get(slot);
     if (!section) return new Float32Array(0);
     this.sections.delete(slot);
-    // A slam that pancakes it: a share goes to dust at once (as a crushed storey does)
-    if (dust > 0) {
-      const gone: number[] = [];
-      const keep: number[] = [];
-      const offs: number[] = [];
-      section.voxels.forEach((v, k) => {
-        if (Math.random() < dust) gone.push(v);
-        else {
-          keep.push(v);
-          offs.push(section.offsets[3 * k], section.offsets[3 * k + 1], section.offsets[3 * k + 2]);
-        }
-      });
-      if (gone.length) {
-        this.onCarry(
-          gone.map((v) => this.body[v]),
-          -1,
-        );
-        this.park(gone, State.Gone);
-      }
-      section.voxels = keep;
-      section.offsets = Float32Array.from(offs);
-    }
     this.markColumn(pose[0], pose[1], Math.max(...section.size) / 2 + 1.5);
     const q = [pose[3], pose[4], pose[5], pose[6]];
     const where = new Float32Array(section.voxels.length * 3);
@@ -1050,13 +1366,6 @@ export class CityPhysics {
       const r = rotate(q, [section.offsets[3 * k], section.offsets[3 * k + 1], section.offsets[3 * k + 2]]);
       for (let a = 0; a < 3; a++) where[3 * k + a] = pose[a] + r[a];
     });
-    // Pancaked: what's left of it lies squashed toward its bottom (a crushed storey is a layer of rubble a
-    // fraction of its height), so what stood on it comes down that far and slams again
-    if (squash < 1) {
-      let zmin = Infinity;
-      for (let k = 0; k < section.voxels.length; k++) zmin = Math.min(zmin, where[3 * k + 2]);
-      for (let k = 0; k < section.voxels.length; k++) where[3 * k + 2] = zmin + (where[3 * k + 2] - zmin) * squash + (Math.random() - 0.5) * 0.1;
-    }
     // The lowest ones take the blow and fly; the rest lie where they are
     const order = section.voxels.map((_, k) => k).sort((a, b) => where[3 * a + 2] - where[3 * b + 2]);
     const count = Math.round(section.voxels.length * loose);
@@ -1189,13 +1498,13 @@ export class CityPhysics {
   /**
    * Where the loose voxels are now: their voxel numbers and, per voxel (12 floats), position
    * (xyzw), velocity (xyzw) and rotation (quaternion), gathered on the GPU so only they are
-   * read back.
+   * read back; their spins (xyzw each) apart, and the same for the sections' bodies.
    */
-  async readLoose(): Promise<{ voxels: number[]; data: Float32Array; sections: number[]; sectionData: Float32Array }> {
+  async readLoose(): Promise<{ voxels: number[]; data: Float32Array; spin: Float32Array; sections: number[]; sectionData: Float32Array; sectionSpin: Float32Array }> {
     const voxels = this.looseList.filter((v) => this.city.state[v] === State.Loose);
     const sections = [...this.sections.keys()];
     const n = voxels.length + sections.length;
-    if (!n) return { voxels, data: new Float32Array(0), sections, sectionData: new Float32Array(0) };
+    if (!n) return { voxels, data: new Float32Array(0), spin: new Float32Array(0), sections, sectionData: new Float32Array(0), sectionSpin: new Float32Array(0) };
     const d = this.device;
     let g = this.gather;
     if (!g || g.capacity < n) {
@@ -1205,8 +1514,8 @@ export class CityPhysics {
       const capacity = Math.max(4096, 2 ** Math.ceil(Math.log2(n)));
       const pipe = g?.pipe ?? d.createComputePipeline({ layout: 'auto', compute: { module: d.createShaderModule({ code: gatherWGSL }), entryPoint: 'main' } });
       const which = d.createBuffer({ size: capacity * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-      const out = d.createBuffer({ size: capacity * 48, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-      const staging = d.createBuffer({ size: capacity * 48, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+      const out = d.createBuffer({ size: capacity * 64, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+      const staging = d.createBuffer({ size: capacity * 64, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
       const count = g?.count ?? d.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
       const group = d.createBindGroup({
         layout: pipe.getBindGroupLayout(0),
@@ -1222,12 +1531,12 @@ export class CityPhysics {
     pass.setBindGroup(0, g.group);
     pass.dispatchWorkgroups(Math.ceil(n / 64));
     pass.end();
-    encoder.copyBufferToBuffer(g.out, 0, g.staging, 0, n * 48);
+    encoder.copyBufferToBuffer(g.out, 0, g.staging, 0, n * 64);
     d.queue.submit([encoder.finish()]);
-    await g.staging.mapAsync(GPUMapMode.READ, 0, n * 48);
-    const all = new Float32Array(g.staging.getMappedRange(0, n * 48).slice(0));
+    await g.staging.mapAsync(GPUMapMode.READ, 0, n * 64);
+    const all = new Float32Array(g.staging.getMappedRange(0, n * 64).slice(0));
     g.staging.unmap();
-    return { voxels, data: all.subarray(0, voxels.length * 12), sections, sectionData: all.subarray(voxels.length * 12) };
+    return { voxels, data: all.subarray(0, voxels.length * 12), spin: all.subarray(n * 12, n * 12 + voxels.length * 4), sections, sectionData: all.subarray(voxels.length * 12, n * 12), sectionSpin: all.subarray(n * 12 + voxels.length * 4, n * 16) };
   }
 
   /**

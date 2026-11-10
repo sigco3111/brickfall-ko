@@ -3437,6 +3437,21 @@ function afterBlast(result: BlastResult, hits: { at: ArrayLike<number>; radius?:
 // ---------- the debris readback (the fork's, scoring what debris breaks) ----------
 const CRUSH_SPEED = 7;
 const SECTION_JOLT = 2.5;
+/** A falling piece crumbles where it lands when it comes down faster than this (m/s): slower, it lands whole. */
+const CRUMBLE_SPEED = 3;
+/** What crushing a layer of a piece takes (J per kg of the layer, for brick; by material from there). */
+const CRUSH_ENERGY = 35;
+/** The most of one bite that goes to dust (chips and a puff where it was) when there's no room for it as bodies. */
+const DUST_MAX = 0.35;
+/** How fast a piece carrying another gives way under it (m/s). */
+const GIVE_SPEED = 2.5;
+/**
+ * Voxels the crumbling pieces had no room for at the last readback. Debris that has all but come to rest on
+ * something solid is laid down as rubble early to make that room (it would be in a second and a half anyway).
+ */
+let crumbleShort = 0;
+/** Tests: how much debris was laid down early for that. */
+let laidEarly = 0;
 const CRUSH_DAMAGE = 2500;
 let damage = new Map<number, number>();
 const crushes: { voxel: number; speed: number }[] = [];
@@ -3554,6 +3569,18 @@ function soundKnocks(): void {
     sounds.debrisHit(material, k.n >= 6 ? 'M' : 'S', k.dv, k.n >= 6 ? k.n : 1, at);
   }
 }
+const lagTest = Number(params.get('lag') ?? 0);
+const lagWaits: { at: number; done: () => void }[] = [];
+/** A pose (centre xyz, quaternion xyzw) `t` seconds on, moving at `vel` and turning at `spin` (rad/s). */
+function ahead(pose: number[], vel: ArrayLike<number>, spin: ArrayLike<number>, t: number): number[] {
+  if (t <= 0) return pose;
+  const [x, y, z, w] = [pose[3], pose[4], pose[5], pose[6]];
+  const [sx, sy, sz] = [spin[0] * t * 0.5, spin[1] * t * 0.5, spin[2] * t * 0.5];
+  // q + ½·t·(spin ⊗ q), made a unit again
+  const q = [x + sx * w + sy * z - sz * y, y + sy * w + sz * x - sx * z, z + sz * w + sx * y - sy * x, w - sx * x - sy * y - sz * z];
+  const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+  return [pose[0] + vel[0] * t, pose[1] + vel[1] * t, pose[2] + vel[2] * t, q[0] / l, q[1] / l, q[2] / l, q[3] / l];
+}
 async function readDebris(): Promise<void> {
   if (reading || (physics.loose === 0 && physics.rubble.size === 0)) return;
   reading = true;
@@ -3562,8 +3589,19 @@ async function readDebris(): Promise<void> {
     const counters = await reader.solver.readCounters();
     if (reader !== physics) return;
     reader.solver.adapt(counters);
-    const { voxels, data, sections, sectionData } = await reader.readLoose();
+    const readAt = physicsSteps;
+    const { voxels, data, spin, sections, sectionData, sectionSpin } = await reader.readLoose();
+    // (Tests, ?lag=n: the readback lands n frames late, as it does on a real frame loop; stepped by hand it never would)
+    if (TESTING && lagTest > 0) await new Promise<void>((done) => lagWaits.push({ at: readAt + lagTest, done }));
     if (reader !== physics) return;
+    // (What was read is this old by now, in the world's time: sections are taken to where they've got to since)
+    const lag = Math.max(0, physicsSteps - readAt) / 60;
+    /**
+     * Where loose voxel `k` of the readback was (xyz, quaternion xyzw). (Not taken on by its velocity as the sections
+     * are: debris nearly at rest in a heap reads as moving while the solver holds it still, and laid down where that
+     * would take it, three times as much of it jumped.)
+     */
+    const poseNow = (k: number) => [data[12 * k], data[12 * k + 1], data[12 * k + 2], data[12 * k + 8], data[12 * k + 9], data[12 * k + 10], data[12 * k + 11]];
     const readStart = performance.now();
     let rbAt = readStart;
     const rbLap = (n: string) => {
@@ -3593,6 +3631,17 @@ async function readDebris(): Promise<void> {
     const zone = level.zone;
     const looseCells = new Map<number, number[]>();
     lastLooseCells = looseCells;
+    /**
+     * Half-metre cells with debris lying nearly still, and those of them where it lies low or on something solid:
+     * what a falling piece comes down on, as rubble is. (Only the second kind is seen coming: a tank's own legs,
+     * loose and still standing under it, aren't a heap to land on.)
+     */
+    const stillCells = new Set<number>();
+    const heapCells = new Set<number>();
+    /** Debris all but at rest on the ground or on something solid (its speed, voxel and place in the readback). */
+    /** Debris all but at rest (its height, voxel and place in the readback), for laying down early. */
+    const slow: [number, number, number][] = [];
+    const census = { slow: 0, slowish: 0, fastHigh: 0, fastLow: 0, settled: 0 };
     for (const [k, v] of voxels.entries()) {
       const o = 12 * k;
       const [px, py, pz] = [data[o], data[o + 1], data[o + 2]];
@@ -3609,6 +3658,19 @@ async function readDebris(): Promise<void> {
       if (zone && city.building[v] === zone.object && Math.hypot(px - zone.x, py - zone.y) < zone.r && pz < 3) inZone++;
       if (Math.abs(px - x) < 12 && Math.abs(py - y) < 12) out.push(px, py, pz);
       const speed = Math.hypot(data[o + 4], data[o + 5], data[o + 6]);
+      if (speed < 1.5) {
+        stillCells.add(ck);
+        const solid = voxelAt(city, px, py, pz - VOXEL) >= 0 || physics.rubbleAt(px, py, pz - VOXEL) >= 0;
+        if (pz < 1.5 || solid) heapCells.add(ck);
+        if (crumbleShort > 0 && speed < 0.5 && Math.hypot(spin[4 * k], spin[4 * k + 1], spin[4 * k + 2]) < 3) slow.push([pz, v, k]);
+        if (TESTING) {
+          if (speed < 0.5) census.slow++;
+          else census.slowish++;
+        }
+      } else if (TESTING) {
+        if (pz > 3) census.fastHigh++;
+        else census.fastLow++;
+      }
       if (speed > 1.5) {
         moving++;
         mx += px;
@@ -3667,6 +3729,40 @@ async function readDebris(): Promise<void> {
       physics.freeze(resting, Float32Array.from(poses));
       unsettled = true;
     }
+    if (crumbleShort > 0 && slow.length) {
+      // Room for what's crumbling: what lies on the ground, on something standing, on rubble, or on debris that
+      // is itself laid down here (bottom first, so a heap goes from its base up)
+      slow.sort((a, b) => a[0] - b[0]);
+      const most = Math.min(4000, Math.ceil(crumbleShort * 1.2));
+      const laidAt = new Set<number>();
+      const quarter = (x: number, y: number, z: number) => (Math.floor(x * 4) + 4096) * 67108864 + (Math.floor(y * 4) + 4096) * 8192 + (Math.floor(z * 4) + 64);
+      const early: [number, number, number][] = [];
+      for (const s of slow) {
+        if (early.length >= most) break;
+        const [pz, v, k] = s;
+        if (city.state[v] !== State.Loose) continue;
+        const [px, py] = [data[12 * k], data[12 * k + 1]];
+        let held = pz < 0.45;
+        for (let i = 0; !held && i < 5; i++) {
+          const [qx, qy] = [px + [0, 0.5, -0.5, 0, 0][i] * VOXEL, py + [0, 0, 0, 0.5, -0.5][i] * VOXEL];
+          held = voxelAt(city, qx, qy, pz - VOXEL) >= 0 || physics.rubbleAt(qx, qy, pz - VOXEL) >= 0 || laidAt.has(quarter(qx, qy, pz - VOXEL));
+        }
+        if (!held) continue;
+        laidAt.add(quarter(px, py, pz));
+        early.push(s);
+      }
+      census.settled = early.length;
+      const earlyPoses = new Float32Array(early.length * 7);
+      early.forEach(([, , k], i) => earlyPoses.set(poseNow(k), 7 * i));
+      physics.freeze(
+        early.map(([, v]) => v),
+        earlyPoses,
+      );
+      laidEarly += early.length;
+      if (early.length) unsettled = true;
+    }
+    if (TESTING && physics.sections.size) collapseLog.push({ f: physicsSteps, what: 'census', ...census, short: crumbleShort, loose: physics.loose });
+    crumbleShort = 0;
     rbLap('rb.freeze');
     // Over the budget (with some slack, so the sort runs now and then, not every readback): down to 92% of it
     if (physics.loose > looseCap * 1.04) {
@@ -3678,7 +3774,7 @@ async function readDebris(): Promise<void> {
       const settleNow = candidates.filter(({ k }) => data[12 * k + 2] < 2.5 && Math.hypot(data[12 * k + 4], data[12 * k + 5], data[12 * k + 6]) < 1.5).slice(0, physics.loose - target);
       if (settleNow.length) {
         const settlePoses = new Float32Array(settleNow.length * 7);
-        settleNow.forEach(({ k }, i) => settlePoses.set([data[12 * k], data[12 * k + 1], data[12 * k + 2], data[12 * k + 8], data[12 * k + 9], data[12 * k + 10], data[12 * k + 11]], 7 * i));
+        settleNow.forEach(({ k }, i) => settlePoses.set(poseNow(k), 7 * i));
         physics.freeze(
           settleNow.map(({ v }) => v),
           settlePoses,
@@ -3710,7 +3806,7 @@ async function readDebris(): Promise<void> {
       const lowFar = over > 0 ? candidates.filter(({ v, k }) => city.state[v] === State.Loose && farOff(k) && data[12 * k + 2] < 2.5 && speedOf(k) < 1.5).slice(0, over) : [];
       if (lowFar.length) {
         const poses = new Float32Array(lowFar.length * 7);
-        lowFar.forEach(({ k }, i) => poses.set([data[12 * k], data[12 * k + 1], data[12 * k + 2], data[12 * k + 8], data[12 * k + 9], data[12 * k + 10], data[12 * k + 11]], 7 * i));
+        lowFar.forEach(({ k }, i) => poses.set(poseNow(k), 7 * i));
         physics.freeze(
           lowFar.map(({ v }) => v),
           poses,
@@ -3748,6 +3844,30 @@ async function readDebris(): Promise<void> {
     player.debrisCount = out.length / 3;
     rbLap('rb.rubble');
     const crushAt: Hit[] = [];
+    // Where each piece is by now, and its lowest voxels there (found once a piece: everything below asks for them)
+    const lows = new Map<number, Float32Array>();
+    for (const [k, slot] of sections.entries()) {
+      const sec = physics.sections.get(slot);
+      if (!sec) continue;
+      const o = 12 * k;
+      sec.pose = ahead([sectionData[o], sectionData[o + 1], sectionData[o + 2], sectionData[o + 8], sectionData[o + 9], sectionData[o + 10], sectionData[o + 11]], sectionData.subarray(o + 4, o + 7), sectionSpin.subarray(4 * k, 4 * k + 3), lag);
+      lows.set(slot, physics.underside(slot, sec.pose, 16));
+    }
+    const lowest = (slot: number, n: number) => lows.get(slot)?.subarray(0, 3 * n) ?? new Float32Array(0);
+    // The pieces that have all but stopped: another piece comes down on them as on rubble (few, while most still fall)
+    const stopped = [...physics.sections.values()].filter((sec) => Math.hypot(sec.velocity[0], sec.velocity[1], sec.velocity[2]) < 1.5).map((sec) => sec.slot);
+    const onStopped = (x: number, y: number, z: number, except: number) => stopped.some((s) => s !== except && physics.inBox(s, x, y, z));
+    // Which pieces have another lying on them, however they lean: the pieces going slowly, by what's under their lowest voxels
+    const loaded = new Set<number>();
+    if (physics.sections.size > 1)
+      for (const sec of physics.sections.values()) {
+        if (Math.hypot(sec.velocity[0], sec.velocity[1], sec.velocity[2]) > 4) continue;
+        const under = lowest(sec.slot, 9);
+        for (let i = 0; i < under.length; i += 3) {
+          const on = physics.sectionAt(under[i], under[i + 1], under[i + 2] - 0.3, sec.slot);
+          if (on >= 0) loaded.add(on);
+        }
+      }
     for (const [k, slot] of sections.entries()) {
       const section = physics.sections.get(slot);
       if (!section) continue;
@@ -3756,9 +3876,9 @@ async function readDebris(): Promise<void> {
       const jolt = Math.hypot(vel[0] - section.velocity[0], vel[1] - section.velocity[1], vel[2] - section.velocity[2]);
       const speed = Math.hypot(vel[0], vel[1], vel[2]);
       const age = now - section.born;
+      section.before = section.velocity;
       section.velocity = [vel[0], vel[1], vel[2]];
-      const pose = [sectionData[o], sectionData[o + 1], sectionData[o + 2], sectionData[o + 8], sectionData[o + 9], sectionData[o + 10], sectionData[o + 11]];
-      section.pose = pose;
+      const pose = section.pose;
       if (zone && city.building[section.voxels[0]] === zone.object && Math.hypot(pose[0] - zone.x, pose[1] - zone.y) < zone.r && pose[2] < 4) inZone += section.voxels.length;
       const resting = age > 1 && speed < 0.5;
       // A piece that has barely moved for a while breaks whatever it's waiting on (two pieces resting on each
@@ -3767,19 +3887,18 @@ async function readDebris(): Promise<void> {
       else section.slowSince = undefined;
       // (Something resting on it: it carries a storey or more, and doesn't get to wait)
       const topZ = pose[2] + section.size[2] / 2 + 0.3;
-      const carries = physics.sections.size > 1 && (physics.inSection(pose[0], pose[1], topZ, slot) || physics.inSection(pose[0] + section.size[0] / 3, pose[1], topZ, slot) || physics.inSection(pose[0] - section.size[0] / 3, pose[1], topZ, slot));
+      const carries = physics.sections.size > 1 && (loaded.has(slot) || physics.covered(slot, pose) || physics.inSection(pose[0], pose[1], topZ, slot));
       // (A piece resting on another falling piece waits for that one to go first, up to 8 s: broken up where
       // it rested, its rubble lay in the air once the piece under it went)
       let onAnother = false;
       if (!carries && section.slowSince !== undefined && physics.sections.size > 1) {
-        const under = physics.underside(slot, pose, 9);
-        for (let i = 0; !onAnother && i < under.length; i += 3) onAnother = physics.inSection(under[i], under[i + 1], under[i + 2] - 0.3, slot);
+        const under = lowest(slot, 9);
+        for (let i = 0; !onAnother && i < under.length; i += 3) for (let d = 0.3; !onAnother && d <= 1.3; d += VOXEL) onAnother = physics.inSection(under[i], under[i + 1], under[i + 2] - d, slot);
       }
-      const stuck = (section.slowSince !== undefined && !onAnother && now - section.slowSince > (carries ? 0.3 : 1.2)) || age > 8;
       // Standing on its own loose, still-bonded parts (a tank on the legs that fell with it): snap them so it
       // comes down instead of stilting on them
       if (age > 0.3 && !params.has('nostilt')) {
-        const low = physics.underside(slot, pose, 16);
+        const low = lowest(slot, 16);
         let ground = false;
         const stilts: number[] = [];
         for (let i = 0; i < low.length; i += 3) {
@@ -3797,54 +3916,136 @@ async function readDebris(): Promise<void> {
           physics.blast([livePos[3 * s0], livePos[3 * s0 + 1], livePos[3 * s0 + 2]], 1.5, 2.5);
         }
       }
-      let hit = stuck;
-      if (age > 0.2 && jolt > SECTION_JOLT) {
-        const low = physics.underside(slot, pose, 16);
-        // (Landing on rubble counts: a storey slamming onto the heap of the one below pancakes in turn. Landing
-        // on another falling piece doesn't: it waits on it, or its rubble would lie in the air once that went)
-        for (let i = 0; !hit && i < low.length; i += 3) hit = low[i + 2] < 1.2 || voxelAt(city, low[i], low[i + 1], low[i + 2] - 0.3) >= 0 || physics.rubbleAt(low[i], low[i + 1], low[i + 2] - 0.3) >= 0;
+      // Out of the world: laid to rest where it went
+      if (sectionData[o + 2] <= PARKED_BELOW) {
+        physics.shatter(slot, pose, vel, 0.02);
+        unsettled = true;
+        continue;
       }
-      if (!hit && !resting && sectionData[o + 2] > PARKED_BELOW) continue;
-      if (resting && !hit && !stuck) {
-        const low = physics.underside(slot, pose, 16);
+      /**
+       * How far down from its lowest voxels to what it's coming down on, within `reach` (m): the ground, anything
+       * standing, rubble, debris lying still, another piece that has itself all but stopped. (One still falling
+       * doesn't count: it waits on that one.)
+       */
+      const gapUnder = (reach: number, cells = stillCells): number => {
+        const low = lowest(slot, 16);
+        let gap = Infinity;
+        for (let i = 0; i < low.length; i += 3) {
+          const [lx, ly, lz] = [low[i], low[i + 1], low[i + 2]];
+          if (!city.weightless) gap = Math.min(gap, Math.max(0, lz - VOXEL / 2));
+          for (let d = VOXEL; d <= reach + VOXEL && d - VOXEL < gap; d += VOXEL)
+            if (voxelAt(city, lx, ly, lz - d) >= 0 || physics.rubbleAt(lx, ly, lz - d) >= 0 || cells.has(cellOf(lx, ly, lz - d)) || (stopped.length > 0 && onStopped(lx, ly, lz - d, slot))) {
+              gap = Math.min(gap, d - VOXEL);
+              break;
+            }
+        }
+        return gap;
+      };
+      /** The slam, once a piece: its sound, the shake, the score, and the crush on what it came down on. */
+      const slam = (v: number, gap: number) => {
+        if (section.landed) return;
+        section.landed = true;
+        const count = section.voxels.length;
+        const first = section.voxels[0];
+        const at = new THREE.Vector3(pose[0], pose[1], pose[2]);
+        const distance = player.position.distanceTo(at);
+        const low = lowest(slot, 12);
+        if (low.length) effects.dust(low, 0.35, concreteDust);
+        if (v > SECTION_JOLT) sounds.debrisHit(Sounds.material(city.material[first]), 'L', v, count, [pose[0], pose[1], pose[2]]);
+        if (count > 200) {
+          sounds.impact(Sounds.material(city.material[first]), Math.min(1, 0.3 + count / 3000), distance, 0, [pose[0], pose[1], pose[2]]);
+          addTrauma(Math.min(0.6, count / 5000) / (1 + distance / 30));
+          award(Math.round(count * 0.5), at.toArray(), 'IMPACT', count > 1500 ? 'big' : 'small');
+        }
+        if (v > CRUSH_SPEED) for (let i = 0; i < low.length; i += 9) crushAt.push({ at: [low[i], low[i + 1], low[i + 2] - gap - 0.3], radius: RADII.crush(v)[0], radii: RADII.crush(v), push: v * 0.12, core: 0.35 });
+      };
+      /** A bite off its underside (physics.bite), with its dust and chips. False if there was no room for it. */
+      const crumble = (v: number, depth: number, ride: boolean, way: number[], energy: number, why: string): boolean => {
+        // (How hard it is to crush: by what it's made of, from a few of its voxels)
+        let strength = 0;
+        const step = Math.max(1, Math.floor(section.voxels.length / 24));
+        let sampled = 0;
+        for (let i = 0; i < section.voxels.length; i += step, sampled++) strength += MAT_BOND[city.material[section.voxels[i]] as Mat] ?? 1;
+        strength = Math.min(2.5, Math.max(0.5, strength / Math.max(1, sampled)));
+        const count = section.voxels.length;
+        const tint = tintOf(section.voxels[0]);
+        const r = physics.bite(slot, pose, v, depth, { energy: energy * strength, room: Math.max(0, looseCap - physics.loose), dustMax: DUST_MAX, ride, way, scatter: ride ? 0.5 : 2 });
+        if (!r) return false;
+        crumbleShort += r.short;
+        const noRoom = !r.layers && r.short > 0;
+        if (TESTING && (r.layers || noRoom)) collapseLog.push({ f: physicsSteps, what: noRoom ? 'no room' : 'bite', why, slot, n: count, v: +v.toFixed(2), depth: +depth.toFixed(2), ride, layers: r.layers, loose: r.loose.length, dust: r.dust.length, short: r.short, out: +r.speed.toFixed(2), gone: r.gone, z: +pose[2].toFixed(1), lag: +lag.toFixed(3), live: physics.loose, early: laidEarly });
+        // (No room for it yet: it's still owed, and tried again at the next look)
+        // (Only what drove it down: once it's stopped it is sent on straight down, never along the ground)
+        const share = ride ? Math.abs(way[2]) : 1;
+        if (noRoom) {
+          section.crush = Math.max(section.crush ?? 0, v * share);
+          return false;
+        }
+        section.crush = r.gone ? 0 : r.speed * share;
+        if (r.dust.length) {
+          // Crushed to powder where it was: chips and a puff of its dust there
+          r.dust.forEach((u, i) => city.position.set(r.dustAt.subarray(3 * i, 3 * i + 3), 3 * u));
+          chips.burst(r.dust.slice(0, 300), [pose[0], pose[1], pose[2] + 1], 1.5, 2 + v * 0.2);
+          effects.dust(r.dustAt.subarray(0, Math.min(r.dustAt.length, 36)), 0.3 + Math.min(0.5, r.dust.length / 600), tint);
+          game.voxelsBroken += r.dust.length;
+        }
+        if (r.layers) unsettled = true;
+        return true;
+      };
+      const before = section.before ?? [0, 0, 0];
+      const waited = section.slowSince !== undefined ? now - section.slowSince : 0;
+      if (TESTING && params.has('sections') && Math.floor(physicsSteps / 6) % 5 === 0) collapseLog.push({ f: physicsSteps, what: 'state', slot, n: section.voxels.length, speed: +speed.toFixed(2), vz: +vel[2].toFixed(2), waited: +waited.toFixed(2), carries, onAnother, resting, crush: +(section.crush ?? 0).toFixed(1), z: +pose[2].toFixed(1), age: +age.toFixed(1), gap: +gapUnder(1).toFixed(2) });
+      // About to come down on something: what would be driven into it before the next look crumbles now, while
+      // it's still moving, so no piece ever stops whole and then turns to rubble
+      const horizon = 0.1 + 1 / 60 + lag;
+      let bitten = false;
+      if (age > 0.15 && speed > CRUMBLE_SPEED && vel[2] < -1.5) {
+        const fall = -vel[2] * horizon + 0.5 * 9.81 * horizon * horizon;
+        const gap = gapUnder(fall, heapCells);
+        if (gap < fall) {
+          slam(speed, gap);
+          crumble(speed, fall - gap, true, [vel[0] / speed, vel[1] / speed, vel[2] / speed], CRUSH_ENERGY, 'landing');
+          bitten = true;
+        }
+      }
+      if (!bitten) {
+        // Stopped by what it hit before that saw it coming: what's left of its fall drives it on
+        if (age > 0.2 && jolt > SECTION_JOLT && gapUnder(VOXEL) <= VOXEL) {
+          slam(jolt, 0);
+          if (-before[2] > CRUMBLE_SPEED && -before[2] > (section.crush ?? 0)) section.crush = -before[2];
+        }
+        const crush = section.crush ?? 0;
+        if (crush > CRUMBLE_SPEED) {
+          // (Owed its bites for a while yet: what there was no room for is done as room comes)
+          if (waited > 6) section.crush = 0;
+          else if (speed < crush * 0.5 && gapUnder(VOXEL) <= VOXEL) {
+            crumble(crush, crush * horizon, false, [0, 0, -1], CRUSH_ENERGY, 'driven');
+            bitten = true;
+          }
+        }
+      }
+      if (bitten) continue;
+      // Going nowhere with another piece on top of it: it gives way under that, a layer a look, and goes on giving
+      // way while it's loaded (every storey of a stack at once: the whole stack comes down through itself)
+      if (!carries) section.giving = false;
+      else if (waited > 0.3 || resting) section.giving = true;
+      if (carries && section.giving && speed < GIVE_SPEED + 1.5) {
+        crumble(GIVE_SPEED, VOXEL * 0.9, false, [0, 0, -1], 0, 'gives way');
+        continue;
+      }
+      // At rest, or going nowhere for too long: it lies where it is as rubble, in its shape (what hangs falls again)
+      const stale = (section.slowSince !== undefined && !onAnother && waited > 1.2) || (age > 8 && speed < 2);
+      if (!resting && !stale) continue;
+      if (!stale) {
+        const low = lowest(slot, 16);
         let onSection = false;
-        for (let i = 0; !onSection && i < low.length; i += 3) onSection = physics.inSection(low[i], low[i + 1], low[i + 2] - 0.3, slot);
+        for (let i = 0; !onSection && i < low.length; i += 3) for (let d = 0.3; !onSection && d <= 1.3; d += VOXEL) onSection = physics.inSection(low[i], low[i + 1], low[i + 2] - d, slot);
         if (onSection) continue;
       }
-      let high = false;
-      if (resting && !hit) {
-        const low = physics.underside(slot, pose, 16);
-        high = true;
-        for (let i = 0; high && i < low.length; i += 3) if (low[i + 2] < 2 || voxelAt(city, low[i], low[i + 1], low[i + 2] - 0.3) >= 0) high = false;
-      }
-      const share = hit ? Math.min(0.12, 0.03 + jolt / 100) : high ? 0.3 : 0.02;
-      // A heavy piece slamming down pancakes: the harder, the more of it goes to dust (a storey crushed by the
-      // fall of what's above it), and what's above comes down onto what's left
-      // (Also a piece that has come to rest with another on top of it: it carries a storey or ten, and goes)
-      const pancake = hit && jolt > 4 ? Math.min(0.5, (jolt - 3) / 10) * (section.voxels.length > 300 ? 1 : 0.5) : carries ? 0.25 : 0;
-      const before = section.voxels.length;
-      // What's left of a big piece lies as a heap a metre or so deep, not standing in its shape: loose rubble can't
-      // stand as a storey (a tower of storeys left standing as rubble was the floating tower's other half)
-      const squash = section.voxels.length > 300 && section.size[2] > 1.5 ? Math.max(pancake > 0 ? 0.3 : 0.35, Math.min(1, 1.2 / section.size[2])) : 1;
-      const low = physics.shatter(slot, pose, vel, share, pancake, squash);
-      if (pancake > 0) {
-        const lost = before - section.voxels.length;
-        game.voxelsBroken += lost;
-        if (low.length) effects.dust(low, 0.5 + pancake, tintOf(section.voxels[0]));
-      }
+      if (TESTING) collapseLog.push({ f: physicsSteps, what: 'laid', slot, n: section.voxels.length, speed: +speed.toFixed(2), age: +age.toFixed(2), z: +pose[2].toFixed(1), lag: +lag.toFixed(3) });
+      const low = physics.shatter(slot, pose, vel, 0);
+      if (low.length && speed > 0.2) effects.dust(low, 0.2, concreteDust);
       unsettled = true;
-      const at = new THREE.Vector3(pose[0], pose[1], pose[2]);
-      const distance = player.position.distanceTo(at);
-      if (low.length) effects.dust(low, 0.35, concreteDust);
-      if (hit && jolt > SECTION_JOLT) sounds.debrisHit(Sounds.material(city.material[section.voxels[0]]), 'L', jolt, section.voxels.length, [pose[0], pose[1], pose[2]]);
-      if (hit && section.voxels.length > 200) {
-        // A storey landing: the slam (by its size) and its rubble
-        sounds.impact(Sounds.material(city.material[section.voxels[0]]), Math.min(1, 0.3 + section.voxels.length / 3000), distance, 0, [pose[0], pose[1], pose[2]]);
-        addTrauma(Math.min(0.6, section.voxels.length / 5000) / (1 + distance / 30));
-        award(Math.round(section.voxels.length * 0.5), at.toArray(), 'IMPACT', section.voxels.length > 1500 ? 'big' : 'small');
-      }
-      if (hit && jolt > CRUSH_SPEED)
-        for (let i = 0; i < low.length; i += 9) crushAt.push({ at: [low[i], low[i + 1], low[i + 2] - 0.3], radius: RADII.crush(jolt)[0], radii: RADII.crush(jolt), push: jolt * 0.12, core: 0.35 });
     }
     rbLap('rb.sections');
     if (zone && !game.zoneHit && inZone > 220 && (phase === 'play' || phase === 'grace')) {
@@ -3982,6 +4183,8 @@ let physicsSteps = 0;
 /** Tests: the loop stands still and the bot steps frames by hand (frame-stepped clips, the jump detector). */
 let manualClock = false;
 const jumps = new JumpDetector();
+/** Tests: where each voxel was drawn at the last restProbe. */
+let restSeen = new Float32Array(0);
 /** Tests: what the section loop did (break-ups, bites, landings), a record each. */
 const collapseLog: Record<string, unknown>[] = [];
 function frame(now: number): void {
@@ -4132,6 +4335,7 @@ function tick(now: number): void {
   while (accumulator >= 1 / 60 && steps < 2) {
     physics.step();
     physicsSteps++;
+    if (lagWaits.length) for (const w of lagWaits.splice(0)) (w.at <= physicsSteps ? w.done() : lagWaits.push(w));
     accumulator -= 1 / 60;
     steps++;
   }
@@ -5249,6 +5453,34 @@ const hook = {
   },
   sectionCount: () => physics.sections.size,
   collapseLog: () => collapseLog.splice(0),
+  /**
+   * Tests: what has moved since the last call, of everything drawn (a heap at rest must not stir): how many voxels
+   * are somewhere else by more than 2 mm, the furthest, and what's still loose or carried.
+   */
+  restProbe: async () => {
+    const bodies = await physics.solver.readBodies();
+    const links = view.linkArray();
+    if (restSeen.length !== 3 * city.count) restSeen = new Float32Array(3 * city.count).fill(NaN);
+    let moved = 0;
+    let furthest = 0;
+    let carried = 0;
+    for (let v = 0; v < city.count; v++) {
+      const b = physics.body[v];
+      const o = b * 40;
+      if (links[4 * b + 3] >= 0) {
+        carried++;
+        continue;
+      }
+      if (bodies[o + 2] < PARKED_BELOW) continue;
+      const d = Math.hypot(bodies[o] - restSeen[3 * v], bodies[o + 1] - restSeen[3 * v + 1], bodies[o + 2] - restSeen[3 * v + 2]);
+      if (d > 0.002) {
+        moved++;
+        furthest = Math.max(furthest, d);
+      }
+      restSeen.set(bodies.subarray(o, o + 3), 3 * v);
+    }
+    return { moved, furthest, carried, loose: physics.loose, sections: physics.sections.size, rubble: physics.rubble.size };
+  },
   /** Tests: the job's box (m: x0, y0, z0, x1, y1, z1). */
   targetBox: () => {
     const lo = [Infinity, Infinity, Infinity];
