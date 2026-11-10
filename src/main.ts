@@ -17,6 +17,8 @@ import { type BlastResult, blasts, type Hit, RADII, within } from './destruction
 import { type ContractCard, Hud, type Mode, type Settings, type Tool } from './hud.ts';
 import { type NavScreen, Pad, PadNav } from './pad.ts';
 import { Impacts } from './impacts.ts';
+import { JumpDetector } from './jumps.ts';
+import { owners } from './owners.ts';
 import { buildLevel, type HeistSpec, type Level, LEVELS, lotsFor, SPAWNS } from './levels.ts';
 import { Loader } from './loader.ts';
 import { type Block, blocks, type Contact, type Controls, Crane, Excavator, glowMat, type Machine, makeMachine, mesh, type Outcome, setRay, sweepBox, VEHICLES } from './machines.ts';
@@ -3977,8 +3979,13 @@ let timeScale = 1;
 let demoClock = 0;
 /** Physics steps taken (each 1/60 s of the world): on a slow machine the world falls behind the wall clock. */
 let physicsSteps = 0;
+/** Tests: the loop stands still and the bot steps frames by hand (frame-stepped clips, the jump detector). */
+let manualClock = false;
+const jumps = new JumpDetector();
+/** Tests: what the section loop did (break-ups, bites, landings), a record each. */
+const collapseLog: Record<string, unknown>[] = [];
 function frame(now: number): void {
-  if (!tuning) tick(now);
+  if (!tuning && !manualClock) tick(now);
   requestAnimationFrame(frame);
 }
 /** One frame at time `now` (ms): input, the game, physics, effects, the render. */
@@ -5216,6 +5223,107 @@ const hook = {
   /** Run `n` frames of 1/60 s by hand (a hidden page gets no animation frames). */
   step: (n = 1) => {
     for (let k = 0; k < n; k++) tick(last + 1000 / 60);
+  },
+  /** Tests: stop the loop (frames only by step) or let it run again. */
+  manual: (on: boolean) => {
+    manualClock = on;
+    last = performance.now();
+    jumps.reset();
+  },
+  /** Tests: wait for the debris readback in flight to land (frame-stepped runs keep the readback in step). */
+  drain: async () => {
+    for (let k = 0; k < 400 && reading; k++) await new Promise((r) => setTimeout(r, 1));
+  },
+  /** Tests: the jump detector's look at this frame (every voxel as drawn, against the frame before). */
+  probe: async () => {
+    // (Everything the shader reads, as it is when the bodies are read: the readback in flight may change it meanwhile)
+    const read = physics.solver.readBodies();
+    const links = view.linkArray().slice();
+    const state = city.state.slice();
+    const generation = new Map(physics.generation);
+    const bodies = await read;
+    const cam = view.camera;
+    viewFrustum.setFromProjectionMatrix(viewMatrix.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const near = (x: number, y: number, z: number) => (x - cam.position.x) ** 2 + (y - cam.position.y) ** 2 + (z - cam.position.z) ** 2 < 120 * 120 && viewFrustum.containsPoint(scratchV.set(x, y, z));
+    return jumps.frame({ bodies, links, tweenA: null, tweenB: null, time: 0, body: physics.body, state, inView: near, parkedBelow: PARKED_BELOW, generation: (slot) => generation.get(slot) ?? 0 });
+  },
+  sectionCount: () => physics.sections.size,
+  collapseLog: () => collapseLog.splice(0),
+  /** Tests: the job's box (m: x0, y0, z0, x1, y1, z1). */
+  targetBox: () => {
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (const i of level.targets) {
+      const b = city.buildings[i];
+      lo[0] = Math.min(lo[0], b.x0 * VOXEL);
+      lo[1] = Math.min(lo[1], b.y0 * VOXEL);
+      lo[2] = 0;
+      hi[0] = Math.max(hi[0], (b.x0 + b.w) * VOXEL);
+      hi[1] = Math.max(hi[1], (b.y0 + b.d) * VOXEL);
+      hi[2] = Math.max(hi[2], b.h * VOXEL);
+    }
+    return [...lo, ...hi];
+  },
+  /** Tests: charges' holes at all these points at once (as a ripple lands before anything falls), cut toward `way`. */
+  blastMany: (points: number[][], kind: 'charge' | 'cutter' = 'charge', way?: number[]) => {
+    const radii = kind === 'charge' ? RADII.charge : RADII.cutter;
+    const hits: Hit[] = points.map((at) => ({ at, radius: radii[0], radii, push: kind === 'charge' ? 4 : 0.5, core: 0.6, topple: way }));
+    const r = blasts(city, structure, physics, hits);
+    afterBlast(r, hits);
+    unsettled = true;
+    return { gone: r.gone.length, loose: r.loose.length, falling: r.falling.length, carried: r.carried, sections: physics.sections.size };
+  },
+  /**
+   * Tests: every drawn voxel has a physics owner (owners.ts), and nothing drawn hangs in the air: fixed voxels each
+   * reach the ground through fixed neighbours in their object, and the no-hover rule's own check for rubble and sections.
+   */
+  ownerCheck: async () => {
+    const read = physics.solver.readBodies();
+    const links = view.linkArray().slice();
+    const sections = new Map<number, Set<number>>();
+    for (const [slot, sec] of physics.sections) sections.set(slot, new Set(sec.voxels));
+    const paints = view.paintArray().slice();
+    const state = city.state.slice();
+    const rest = physics.rest.slice();
+    const rubble = new Set(physics.rubble);
+    const bodies = await read;
+    const r = owners({ bodies, links, paints, tweenA: null, tweenB: null, time: 0, body: physics.body, state, material: city.material, exposed: city.exposed, home: city.position, rest, rubble, sections, parkedBelow: PARKED_BELOW });
+    const floating: { v: number; mat: number; at: number[] }[] = [];
+    let floatingCount = 0;
+    for (const b of city.buildings) {
+      const n = b.w * b.d * b.h;
+      const seen = new Uint8Array(n);
+      const queue: number[] = [];
+      for (let c = 0; c < b.w * b.d; c++) {
+        const v = b.cells[c];
+        if (v >= 0 && city.state[v] === State.Fixed) {
+          seen[c] = 1;
+          queue.push(c);
+        }
+      }
+      for (let k = 0; k < queue.length; k++) {
+        const c = queue[k];
+        const x = c % b.w;
+        const y = Math.floor(c / b.w) % b.d;
+        const z = Math.floor(c / (b.w * b.d));
+        const near = [x > 0 ? c - 1 : -1, x + 1 < b.w ? c + 1 : -1, y > 0 ? c - b.w : -1, y + 1 < b.d ? c + b.w : -1, z > 0 ? c - b.w * b.d : -1, z + 1 < b.h ? c + b.w * b.d : -1];
+        for (const m of near) {
+          if (m < 0 || seen[m]) continue;
+          const u = b.cells[m];
+          if (u < 0 || city.state[u] !== State.Fixed) continue;
+          seen[m] = 1;
+          queue.push(m);
+        }
+      }
+      for (let c = 0; c < n; c++) {
+        const v = b.cells[c];
+        if (v < 0 || seen[c] || city.state[v] !== State.Fixed) continue;
+        floatingCount++;
+        if (floating.length < 200) floating.push({ v, mat: city.material[v], at: Array.from(city.position.subarray(3 * v, 3 * v + 3), (x) => +x.toFixed(2)) });
+      }
+    }
+    const hover = hook.hoverCheck();
+    return { ...r, floatingCount, floating, framelessPanes: [], hover, meshes: { glass: true, balls: true }, count: city.count, sections: physics.sections.size, loose: physics.loose };
   },
   skipIntro: () => {
     game.introT = 99;

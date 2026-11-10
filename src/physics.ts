@@ -193,6 +193,8 @@ export class CityPhysics {
   readonly spares: number[] = [];
   /** Sections falling whole, and the bodies free for more. */
   readonly sections = new Map<number, Section>();
+  /** How many sections each slot has carried (tests: a slot's new section isn't the old one moved). */
+  readonly generation = new Map<number, number>();
   private readonly freeSlots: number[] = [];
   /** Told when voxels are carried by a section's body, or let go (parent -1): the renderer draws them there. */
   onCarry: (bodies: number[], parent: number, offsets?: Float32Array) => void = () => {};
@@ -804,6 +806,7 @@ export class CityPhysics {
       slot,
       offsets,
     );
+    this.generation.set(slot, (this.generation.get(slot) ?? 0) + 1);
     this.sections.set(slot, { slot, voxels, offsets, bond, born: now, velocity: [0, 0, 0], size, pose: [...centre, q[0], q[1], q[2], q[3]] });
     return true;
   }
@@ -936,6 +939,7 @@ export class CityPhysics {
       slot,
       offsets,
     );
+    this.generation.set(slot, (this.generation.get(slot) ?? 0) + 1);
     this.sections.set(slot, { slot, voxels, offsets, bond, born: now, velocity: [0, 0, 0], size, pose: [...centre, 0, 0, 0, 1] });
     return true;
   }

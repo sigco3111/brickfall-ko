@@ -621,6 +621,15 @@ export class CityRenderer {
     return buffer;
   }
 
+  /** The paints as the shaders read them (tests: the owner check; a negative w is no voxel of this world). */
+  paintArray(): Float32Array {
+    return (this.paints?.array as Float32Array) ?? new Float32Array(0);
+  }
+  /** The section links as the shader reads them (tests: the jump detector). */
+  linkArray(): Float32Array {
+    return (this.links?.array as Float32Array) ?? new Float32Array(0);
+  }
+
   /**
    * Bodies carried by a section (`parent`, a body index) at `offsets` (xyz each, in the
    * section's frame), or let go (parent -1).
