@@ -1327,8 +1327,8 @@ function warehouse(seed: number): { city: City; level: Level } {
           { name: '금괴', look: 'gold', at: [-8.25, 8.4, 0.25], required: true },
           { name: '서버 드라이브', look: 'drive', at: [8.4, 9.0, 0.25], required: true },
           { name: '장부', look: 'ledger', at: [6.5, 6.0, 3.5], required: true },
-          { name: 'Paintings', look: 'paintings', at: [17.6, 1.0, 0.25], required: true },
-          { name: 'Watches', look: 'watches', at: [16.5, 1.0, 2.75], required: false },
+          { name: '명화', look: 'paintings', at: [17.6, 1.0, 0.25], required: true },
+          { name: '손목시계', look: 'watches', at: [16.5, 1.0, 2.75], required: false },
           { name: '현금 상자', look: 'cash', at: [-15.6, -12.4, 0.25], required: false },
         ],
         alarms: [
