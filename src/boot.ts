@@ -6,15 +6,20 @@ import '@fontsource/anton/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-700.css';
 import '@fontsource/inter/latin-800.css';
+import '@fontsource/black-han-sans/korean-400.css';
+import '@fontsource/noto-sans-kr/korean-400.css';
+import '@fontsource/noto-sans-kr/korean-500.css';
+import '@fontsource/noto-sans-kr/korean-700.css';
+import '@fontsource/noto-sans-kr/korean-800.css';
 
 async function webgpu(): Promise<string | null> {
   const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
-  if (!gpu) return 'This browser does not offer WebGPU.';
+  if (!gpu) return '이 브라우저는 WebGPU를 제공하지 않습니다.';
   try {
     const adapter = await gpu.requestAdapter();
-    if (!adapter) return 'This browser has WebGPU, but could not find a graphics card it can use.';
+    if (!adapter) return '이 브라우저는 WebGPU를 지원하지만, 사용할 수 있는 그래픽 카드를 찾지 못했습니다.';
   } catch {
-    return 'This browser has WebGPU, but could not start it.';
+    return '이 브라우저는 WebGPU를 지원하지만, 시작하지 못했습니다.';
   }
   return null;
 }
@@ -28,7 +33,7 @@ function needsWebGPU(reason: string): void {
 
 const params = new URLSearchParams(location.search);
 void webgpu().then((reason) => {
-  if (params.has('nogpu')) reason = 'Preview of the screen shown where WebGPU is missing.';
+  if (params.has('nogpu')) reason = 'WebGPU가 없을 때 표시되는 화면의 미리보기입니다.';
   if (reason) {
     needsWebGPU(reason);
     return;

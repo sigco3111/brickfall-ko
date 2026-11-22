@@ -78,12 +78,12 @@ export interface HeistSpec {
 
 /** The sandbox's spawn menu: what it offers. */
 export const SPAWNS = [
-  { kind: 'propane', name: 'Propane tank' },
-  { kind: 'drum', name: 'Fuel drum' },
-  { kind: 'bottles', name: 'Gas bottles' },
-  { kind: 'car', name: 'Car' },
-  { kind: 'crates', name: 'Crates' },
-  { kind: 'tanker', name: 'Fuel tanker' },
+  { kind: 'propane', name: '프로판 탱크' },
+  { kind: 'drum', name: '연료 드럼' },
+  { kind: 'bottles', name: '가스통' },
+  { kind: 'car', name: '자동차' },
+  { kind: 'crates', name: '상자' },
+  { kind: 'tanker', name: '연료 탱커' },
 ] as const;
 
 /** Whether the lot being built gets the sandbox's spawn pool, and the pool it got. */
@@ -174,17 +174,17 @@ function tanker(w: WorldBuilder, cx: number, cy: number): void {
 }
 
 export const LEVELS = [
-  { id: 0, name: 'The Starter Home', job: 'House', brief: 'Bring the house down. Leave the neighbour’s shed standing.' },
-  { id: 1, name: 'The Water Tower', job: 'Tower', brief: 'Topple the water tower into the ring behind it.' },
-  { id: 2, name: 'The Corner Tower', job: 'Tower', brief: 'Eleven storeys of concrete. Bring them all down.' },
-  { id: 3, name: 'The Farm', job: 'Barn and silo', brief: 'Flatten the old barn and lay the silo down in the field.' },
-  { id: 4, name: 'The Chimney', job: 'Chimney', brief: 'Drop the brick chimney down the yard. Spare the boiler house.' },
-  { id: 5, name: 'The Car Park', job: 'Car park', brief: 'Five decks of concrete and cars. Pancake every one.' },
-  { id: 6, name: 'The Petrol Station', job: 'Station', brief: 'Bring down the canopy and the shop. The gas lines are live.' },
-  { id: 7, name: 'The Warehouse', job: 'Loot', brief: 'Four pieces to take, two worth a detour. The first one you lift sets off the alarm.' },
-  { id: 8, name: 'The Pier', job: 'Pier end', brief: 'Drop the boathouse and the end of the pier into the sea. Spare the lighthouse.' },
-  { id: 9, name: 'The Quarry', job: 'Crusher plant', brief: 'Take down the crusher house and its conveyor. Their frames are steel: bring cutters.' },
-  { id: 10, name: 'The Church', job: 'Steeple', brief: 'Bring the stone steeple down beside the nave, not onto it.' },
+  { id: 0, name: '첫 번째 집', job: '집', brief: '집을 무너뜨리세요. 이웃의 헛간은 남겨 두어야 합니다.' },
+  { id: 1, name: '급수탑', job: '탑', brief: '급수탑을 뒤쪽 링 안으로 넘어뜨리세요.' },
+  { id: 2, name: '모퉁이 타워', job: '타워', brief: '11층 콘크리트 건물. 전부 무너뜨리세요.' },
+  { id: 3, name: '농장', job: '헛간과 사일로', brief: '낡은 헛간을 납작하게 하고 사일로를 들판에 눕히세요.' },
+  { id: 4, name: '굴뚝', job: '굴뚝', brief: '벽돌 굴뚝을 마당 쪽으로 쓰러뜨리세요. 보일러실은 보존하세요.' },
+  { id: 5, name: '주차장', job: '주차장', brief: '콘크리트와 차량의 다섯 층. 전부 수직으로 무너뜨리세요.' },
+  { id: 6, name: '주유소', job: '주유소', brief: '캐노피와 상점을 무너뜨리세요. 가스 배관이 살아 있습니다.' },
+  { id: 7, name: '창고', job: '전리품', brief: '가져갈 것 네 개, 그중 둘은 우회할 가치가 있습니다. 첫 번째를 드는 순간 경보가 울립니다.' },
+  { id: 8, name: '부두', job: '부두 끝', brief: '보트 창고와 부두 끝을 바다에 빠뜨리세요. 등대는 보존하세요.' },
+  { id: 9, name: '채석장', job: '파쇄 설비', brief: '파쇄동과 컨베이어를 무너뜨리세요. 골조가 강철이니 절단 장약이 필요합니다.' },
+  { id: 10, name: '교회', job: '첨탑', brief: '돌 첨탑을 예배당 옆으로 무너뜨리세요. 덮치지 않게.' },
 ] as const;
 
 /** Which lots each mode offers: the heists have their own. */
@@ -511,7 +511,7 @@ function starterHome(seed: number): { city: City; level: Level } {
       charges: 4,
       targets,
       keep,
-      keepName: 'Shed',
+      keepName: '헛간',
       barrels,
       spawn: [0.5, -13, Math.PI / 2 + 0.06, 0.1],
       machines: [{ kind: 'excavator', at: [7, -10], heading: Math.PI / 2 }],
@@ -909,7 +909,7 @@ function chimney(seed: number): { city: City; level: Level } {
       rockets: 2,
       targets,
       keep,
-      keepName: 'Boiler house',
+      keepName: '보일러실',
       barrels,
       zone: { x: 0, y: 24, r: 4.5, object: targets[0] },
       spawn: [4, -15, Math.PI / 2 + 0.25, 0.32],
@@ -1043,7 +1043,7 @@ function carPark(seed: number): { city: City; level: Level } {
       pipes: 3,
       targets: [park],
       keep: [hut],
-      keepName: 'Ticket hut',
+      keepName: '매표소',
       barrels,
       spawn: [-4, -17, Math.PI / 2 + 0.2, 0.22],
       machines: [{ kind: 'crane', at: [-14, -14], heading: Math.PI / 2 - 0.3 }, { kind: 'excavator', at: [9, -15], heading: Math.PI / 2 }],
@@ -1324,12 +1324,12 @@ function warehouse(seed: number): { city: City; level: Level } {
       machines: [{ kind: 'excavator', at: [-9, -16], heading: Math.PI / 2 }],
       heist: {
         loot: [
-          { name: 'Gold bars', look: 'gold', at: [-8.25, 8.4, 0.25], required: true },
-          { name: 'Server drives', look: 'drive', at: [8.4, 9.0, 0.25], required: true },
-          { name: 'The ledger', look: 'ledger', at: [6.5, 6.0, 3.5], required: true },
+          { name: '금괴', look: 'gold', at: [-8.25, 8.4, 0.25], required: true },
+          { name: '서버 드라이브', look: 'drive', at: [8.4, 9.0, 0.25], required: true },
+          { name: '장부', look: 'ledger', at: [6.5, 6.0, 3.5], required: true },
           { name: 'Paintings', look: 'paintings', at: [17.6, 1.0, 0.25], required: true },
           { name: 'Watches', look: 'watches', at: [16.5, 1.0, 2.75], required: false },
-          { name: 'Cash box', look: 'cash', at: [-15.6, -12.4, 0.25], required: false },
+          { name: '현금 상자', look: 'cash', at: [-15.6, -12.4, 0.25], required: false },
         ],
         alarms: [
           { at: [0, -3.12, 2.4], facing: [0, -1] },
@@ -1474,7 +1474,7 @@ function pier(seed: number): { city: City; level: Level } {
       pipes: 3,
       targets,
       keep,
-      keepName: 'Lighthouse',
+      keepName: '등대',
       barrels,
       tankBox,
       sea: 1.0,
@@ -1607,7 +1607,7 @@ function quarry(seed: number): { city: City; level: Level } {
       pipes: 3,
       targets,
       keep,
-      keepName: 'Site office',
+      keepName: '현장 사무실',
       barrels,
       spawn: [2, -17, Math.PI / 2 + 0.2, 0.15],
       machines: [
@@ -1717,7 +1717,7 @@ function church(seed: number): { city: City; level: Level } {
       pipes: 2,
       targets,
       keep,
-      keepName: 'Nave',
+      keepName: '본당',
       barrels,
       zone: { x: -9, y: -10, r: 5, object: targets[0] },
       spawn: [6, -18, Math.PI / 2 + 0.45, 0.25],

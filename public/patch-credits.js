@@ -2,17 +2,17 @@
 (() => {
   const C = {
     title: "Brickfall",
-    author: "Made for Patch on three-voxel-destruction by Steven Bobyn",
-    license: "Code MIT. Textures and skies CC0 (Poly Haven). Sounds: Sonniss GDC bundle, licensed for this game only. Full list in CREDITS.md",
+    author: "Steven Bobyn의 three-voxel-destruction 기반, Patch 제작 · 한글화 미러",
+    license: "코드 MIT. 텍스처·하늘 CC0 (Poly Haven). 효과음: CC0·CC-BY 오픈 녹음 + 생성음·합성음. 전체 목록은 CREDITS.md",
     source: "github.com/sbobyn/three-voxel-destruction (MIT) · three-avbd (MIT) · three.js (MIT)",
-    note: "Added to Patch by Patch. The author can claim it.",
+    note: "원작: Patch. 한글화 저장소는 별도 미러입니다.",
   };
   const d = document, root = d.createElement("div");
   root.style.cssText = "position:fixed;left:10px;bottom:10px;z-index:2147483647;pointer-events:none;font:13px/1.45 system-ui,sans-serif;color:#eee";
   const btn = d.createElement("button");
   btn.type = "button";
   btn.textContent = "i";
-  btn.setAttribute("aria-label", "Credits");
+  btn.setAttribute("aria-label", "크레딧");
   btn.setAttribute("aria-expanded", "false");
   btn.style.cssText = "pointer-events:auto;width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:rgba(255,255,255,.8);font:italic 600 13px Georgia,serif;cursor:pointer;opacity:.6;padding:0";
   const panel = d.createElement("div");
@@ -21,9 +21,9 @@
   const line = (t, s) => { const p = d.createElement("div"); p.textContent = t; if (s) p.style.cssText = s; panel.append(p); };
   line(C.title, "font-weight:600;font-size:15px;margin-bottom:4px");
   line(C.author);
-  line("License: " + C.license);
-  line("Source: " + C.source, "word-break:break-all;user-select:text");
-  line("Sound: recordings from the Sonniss GDC Game Audio Bundle (Bluezone, PMSFX, Gamemaster Audio, Stefano Cremona, Lukas Tvrdon, Tatak Audio, Pole Position and others), licensed for this game only. Music and horn generated with Sonilo and ElevenLabs on fal. Fonts: Anton and Inter (OFL).", "margin-top:6px;opacity:.8");
+  line("라이선스: " + C.license);
+  line("소스: " + C.source, "word-break:break-all;user-select:text");
+  line("효과음: Patch의 voxel-destruction 블록에서 가져온 Freesound·Kenney의 CC0/CC-BY 녹음(CC-BY: richardemoore, YleArkisto, juskiddink, DWOBoyle). 음악·혼은 Sonilo·ElevenLabs 생성. 폰트: Anton, Inter, Black Han Sans, Noto Sans KR (OFL).", "margin-top:6px;opacity:.8");
   line(C.note, "margin-top:6px;opacity:.7");
   btn.addEventListener("click", () => {
     panel.hidden = !panel.hidden;

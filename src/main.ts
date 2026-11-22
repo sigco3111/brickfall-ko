@@ -54,80 +54,80 @@ interface ToolSpec extends Tool {
 }
 const ALL_TOOLS: ToolSpec[] = [
   {
-    name: 'Sledge',
+    name: '슬레지',
     key: '1',
-    hint: 'Hold <b>Click</b> to wind up, release to swing',
+    hint: '<b>클릭</b>을 길게 눌러 힘을 모으고, 놓아서 휘두르세요',
     icon: `<svg viewBox="0 0 24 24"><path d="M4 20l9-9"/><path d="M11 5l3-2 7 7-2 3z"/><path d="M12 8l4 4"/></svg>`,
     reach: 3.6,
     cooldown: 0.12,
   },
   {
-    name: 'Cannon',
+    name: '캐논',
     key: '2',
-    hint: '<b>Click</b> to fire: the ball punches through wall after wall',
+    hint: '<b>클릭</b>으로 발사: 철구가 벽을 연달아 뚫습니다',
     icon: `<svg viewBox="0 0 24 24"><circle cx="17.5" cy="7" r="2.5"/><path d="M3 15l9-5 2 4-9 5z"/><circle cx="7" cy="18" r="3"/></svg>`,
     reach: 300,
     cooldown: 0.85,
   },
   {
-    name: 'Charges',
+    name: '장약',
     key: '3',
-    hint: '<b>Click</b> to stick a charge · <b>Right click</b> or <b>Q</b> to blow them',
+    hint: '<b>클릭</b>으로 장약 부착 · <b>우클릭</b> 또는 <b>Q</b>로 기폭',
     icon: `<svg viewBox="0 0 24 24"><rect x="4" y="9" width="12" height="11" rx="1.5"/><path d="M8 9V6h4v3"/><path d="M12 6c0-2 2-3 4-3"/><path d="M18 2l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg>`,
     reach: 6,
     cooldown: 0.25,
   },
   {
-    name: 'Cutter',
+    name: '절단 장약',
     key: '4',
-    hint: '<b>Click</b> to lay a cutter across a column or girder: it slices a line through anything, even steel · <b>Q</b> fires it with the charges',
+    hint: '<b>클릭</b>으로 기둥이나 보에 절단 장약 설치: 강철을 포함해 무엇이든 일자로 절단 · <b>Q</b>로 장약과 함께 기폭',
     icon: `<svg viewBox="0 0 24 24"><path d="M3 14h18"/><rect x="3" y="11" width="18" height="6" rx="1.5"/><path d="M7 11V8M12 11V7M17 11V8"/></svg>`,
     reach: 6,
     cooldown: 0.25,
   },
   {
-    name: 'Jackhammer',
+    name: '잭해머',
     key: '5',
-    hint: '<b>Hold click</b> on a wall: chips through brick and concrete, a bite at a time',
+    hint: '벽에서 <b>클릭 길게</b>: 벽돌과 콘크리트를 조금씩 뜯어냅니다',
     icon: `<svg viewBox="0 0 24 24"><path d="M6 4h12"/><path d="M12 4v4"/><rect x="8" y="8" width="8" height="7" rx="1.5"/><path d="M12 15v6"/><path d="M10 21h4"/></svg>`,
     reach: 2.6,
     cooldown: 0.1,
   },
   {
-    name: 'Rocket',
+    name: '로켓',
     key: '6',
-    hint: '<b>Click</b> to fire a rocket: it blows up on the first thing it hits',
+    hint: '<b>클릭</b>으로 로켓 발사: 처음 맞은 것에서 폭발합니다',
     icon: `<svg viewBox="0 0 24 24"><path d="M3 15l12-6 3 4-12 6z"/><path d="M15 9l4-2-1 6"/><path d="M5 18l-2 3M8 17l-1 4"/></svg>`,
     reach: 300,
     cooldown: 1.6,
   },
   {
-    name: 'Pipe bomb',
+    name: '파이프 폭탄',
     key: '7',
-    hint: '<b>Click</b> to throw a pipe bomb: it bounces, the fuse burns three seconds, then it goes',
+    hint: '<b>클릭</b>으로 파이프 폭탄 투척: 튕긴 뒤 도화선이 3초 타고 폭발합니다',
     icon: `<svg viewBox="0 0 24 24"><rect x="5" y="9" width="12" height="7" rx="1"/><path d="M5 9v7M17 9v7"/><path d="M17 12h2c1 0 1-2 2-3"/><path d="M21 7l1-1"/></svg>`,
     reach: 300,
     cooldown: 0.6,
   },
   {
-    name: 'Plank',
+    name: '판자',
     key: '8',
-    hint: '<b>Click</b> where one end goes, <b>click</b> again for the other: a board up to 5 m to bridge a gap or make a ramp',
+    hint: '한쪽 끝을 <b>클릭</b>, 다른 쪽 끝을 다시 <b>클릭</b>: 최대 5m 판자로 틈을 잇거나 경사로를 만듭니다',
     icon: `<svg viewBox="0 0 24 24"><path d="M3 16l16-9 2 3-16 9z"/><path d="M7 14l2 3M11 12l2 3M15 10l2 3"/></svg>`,
     reach: 7,
     cooldown: 0.2,
   },
   {
-    name: 'Cable',
+    name: '케이블',
     key: '9',
-    hint: '<b>Click</b> a wall or a machine, <b>click</b> the other end: up to 12 m of steel cable. Drive away and it pulls',
+    hint: '벽이나 기계를 <b>클릭</b>, 다른 쪽 끝을 <b>클릭</b>: 최대 12m 강철 케이블. 멀어지면 당깁니다',
     icon: `<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="4"/><path d="M11 8c4 0 4 9 8 9"/><path d="M19 14v6M17 20h4"/></svg>`,
     reach: 9,
     cooldown: 0.2,
   },
 ];
 /** The tools on offer: the cable only with the vehicles (it's what they pull with). */
-const TOOLS = VEHICLES ? ALL_TOOLS : ALL_TOOLS.filter((t) => t.name !== 'Cable');
+const TOOLS = VEHICLES ? ALL_TOOLS : ALL_TOOLS.filter((t) => t.key !== '9');
 const SLEDGE = 0;
 const CANNON = 1;
 const CHARGE = 2;
@@ -346,7 +346,7 @@ hud.onKeep = () => {
   cam.active = false;
   hud.cine(false);
   hud.show(true);
-  hud.hint('Free play: keep wrecking · <b>Esc</b> for Retry, Contracts');
+  hud.hint('자유 플레이: 계속 부수세요 · <b>Esc</b>로 다시 하기·계약 목록');
   spawn();
   lockPointer();
 };
@@ -434,18 +434,18 @@ function toggleSpawn(): void {
 function nextHour(): void {
   dayHour = HOURS[(HOURS.indexOf(dayHour) + 1) % HOURS.length];
   setDayHour(dayHour);
-  hud.toast(`Time of day: ${Math.floor(dayHour)}:${String(Math.round((dayHour % 1) * 60)).padStart(2, '0')}`);
+  hud.toast(`시간대: ${Math.floor(dayHour)}:${String(Math.round((dayHour % 1) * 60)).padStart(2, '0')}`);
 }
 function nextDelay(): void {
   fuseDelay = DELAYS[(DELAYS.indexOf(fuseDelay) + 1) % DELAYS.length];
-  hud.toast(`Next charge fires ${fuseDelay ? `${fuseDelay} s after` : 'on'} the button`);
+  hud.toast(`다음 장약: 버튼을 누르면 ${fuseDelay ? `${fuseDelay}초 후` : '즉시'} 기폭`);
   sounds.click();
 }
 function toggleLoad(): void {
   overlayOn = !overlayOn;
   overlayAt = 0;
   view.overlay.value = overlayOn ? 1 : 0;
-  hud.toast(overlayOn ? 'Load view on: storeys glow as they take load (L to hide)' : 'Load view off');
+  hud.toast(overlayOn ? '하중 보기 켜짐: 층이 하중에 따라 빛납니다 (L로 숨기기)' : '하중 보기 꺼짐');
 }
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => {
@@ -526,26 +526,27 @@ let bumper = { at: -1, by: 0 as -1 | 0 | 1, lit: -1 };
 /** The spawn bar's lit prop, on the pad. */
 let spawnAt = 0;
 const PAD_HELP = () =>
-  `<b>L stick</b> move · <b>R stick</b> look · {RT} use tool · {LB} {RB} switch, hold for the wheel · {A} jump · {B} crouch · {LS} sprint · {LT} / {Y} detonate · {Down} charge delay · {X} take loot, drive · {Up} load view · {Start} pause`;
+  `<b>L 스틱</b> 이동 · <b>R 스틱</b> 시점 · {RT} 도구 사용 · {LB} {RB} 도구 전환, 길게 누르면 휠 · {A} 점프 · {B} 앉기 · {LS} 달리기 · {LT} / {Y} 기폭 · {Down} 기폭 지연 · {X} 전리품 줍기, 운전 · {Up} 하중 보기 · {Start} 일시 정지`;
 /** The keyboard's words in prompts and hints, and what the pad says instead. */
 const PAD_WORDS: [RegExp, string][] = [
-  [/<b>A<\/b>\/<b>D<\/b>/g, '<b>L stick</b> ←/→'],
-  [/<b>W<\/b>\/<b>S<\/b>/g, '<b>L stick</b> ↑/↓'],
+  [/<b>A<\/b>\/<b>D<\/b>/g, '<b>L 스틱</b> ←/→'],
+  [/<b>W<\/b>\/<b>S<\/b>/g, '<b>L 스틱</b> ↑/↓'],
   [/<b>Space<\/b>\/<b>C<\/b>/g, '{A}/{B}'],
-  [/<b>[Hh]old click<\/b>/g, 'hold {RT}'],
-  [/Hold <b>Click<\/b>/g, 'Hold {RT}'],
-  [/<b>[Cc]lick<\/b>/g, '{RT}'],
-  [/<b>Right click<\/b> or <b>Q<\/b>/g, '{LT} or {Y}'],
+  [/<b>클릭<\/b>을 길게/g, '{RT}을 길게'],
+  [/<b>클릭 길게<\/b>/g, '{RT} 길게'],
+  [/<b>우클릭<\/b> 또는 <b>Q<\/b>/g, '{LT} 또는 {Y}'],
+  [/<b>클릭<\/b>/g, '{RT}'],
   [/<b>Q<\/b>/g, '{Y}'],
   [/<b>F<\/b>/g, '{X}'],
   [/<b>Esc<\/b>/g, '{Start}'],
   [/<b>L<\/b>/g, '{Up}'],
-  [/<em>B to close<\/em>/g, '<em>{B} to close</em>'],
-  [/CLICK TO CLOSE/g, '{B} TO CLOSE'],
+  [/<em>B로 닫기<\/em>/g, '<em>{B}로 닫기</em>'],
+  [/클릭해서 닫기/g, '{B}로 닫기'],
   // (plain text: toasts, the modes' lines)
-  [/\(L to hide\)/g, '({Up} to hide)'],
-  [/\bB spawns/g, '{Back} spawns'],
-  [/\bT sets/g, '{RS} sets'],
+  [/\(L로 숨기기\)/g, '({Up}으로 숨기기)'],
+  [/\bB로 소품 소환/g, '{Back}으로 소품 소환'],
+  [/\bB로 탱크·차·가스통 소환/g, '{Back}으로 탱크·차·가스통 소환'],
+  [/\bT로 시간대 변경/g, '{RS}로 시간대 변경'],
 ];
 const keyHelp = hud.help;
 hud.help = () => (pad.used ? pad.text(PAD_HELP()) : keyHelp());
@@ -719,20 +720,20 @@ function unlockedRows(rows: [string, string][], had: number): void {
   if (!locksOn()) return;
   const opened = newlyOpened(had);
   if (!opened.length) return;
-  rows.push(['Unlocked', opened.join(', ')]);
+  rows.push(['잠금 해제', opened.join(', ')]);
   sounds.pickup();
 }
 
 function selectTool(i: number): void {
   if (i === tool) return;
   if (toolLocked(i)) {
-    hud.toast(`${TOOLS[i].name}: unlocks at ${TOOL_STARS[i]} stars (you have ${starTotal()})`);
+    hud.toast(`${TOOLS[i].name}: 별 ${TOOL_STARS[i]}개에 잠금 해제 (보유 ${starTotal()}개)`);
     sounds.click();
     return;
   }
   // (A blowdown is wired, not shot: charges and cutters only)
   if (mode === 'blowdown' && phase !== 'free' && i !== CHARGE && i !== CUTTER) {
-    hud.toast('Blowdown: charges and cutters only');
+    hud.toast('블로우다운: 장약과 절단 장약만 사용할 수 있습니다');
     return;
   }
   tool = i;
@@ -1154,7 +1155,7 @@ function machineHit(c: Contact): Outcome {
     addTrauma(Math.min(0.35, c.vn * 0.05) * (riding ? 1 : 0.5));
     if (TIER[mat] >= 2 && !toldHard && riding) {
       toldHard = true;
-      hud.toast(mat === Mat.Rock ? 'Bedrock: nothing breaks that' : 'Too hard for the machine: a charge or a cutter takes it');
+      hud.toast(mat === Mat.Rock ? '기반암: 무엇으로도 부술 수 없습니다' : '기계로는 너무 단단합니다: 장약이나 절단 장약을 사용하세요');
     }
     return { brokeMass: 0 };
   }
@@ -1243,12 +1244,12 @@ function useMachine(): boolean {
   turning = { from: [player.yaw, player.pitch], to: [player.yaw + Math.atan2(Math.sin(near.kind === 'crane' ? near.heading + near.slew - player.yaw : near.yaw - player.yaw), Math.cos(near.kind === 'crane' ? near.heading + near.slew - player.yaw : near.yaw - player.yaw)), near.kind === 'crane' ? -0.28 : -0.22], t: 0, seconds: 0.5 };
   hud.machine(
     near.kind === 'crane'
-      ? '<b>A</b>/<b>D</b> swing the boom · <b>W</b>/<b>S</b> raise and lower it · <b>Space</b>/<b>C</b> wind the ball up and down · <b>F</b> climb out'
-      : '<b>W</b>/<b>S</b> drive · <b>A</b>/<b>D</b> turn · the arm reaches where you look · <b>hold click</b> to dig · <b>F</b> climb out',
+      ? '<b>A</b>/<b>D</b> 붐 회전 · <b>W</b>/<b>S</b> 붐 올리기·내리기 · <b>Space</b>/<b>C</b> 철구 감기·풀기 · <b>F</b> 내리기'
+      : '<b>W</b>/<b>S</b> 주행 · <b>A</b>/<b>D</b> 회전 · 암은 보는 곳까지 뻗습니다 · <b>클릭 길게</b>로 파기 · <b>F</b> 내리기',
   );
   if (!toldMachine) {
     toldMachine = true;
-    hud.toast(near.kind === 'crane' ? 'Swing the boom, then stop it: the ball keeps going' : 'Drive it into a wall, or dig the bucket in');
+    hud.toast(near.kind === 'crane' ? '붐을 흔들다가 멈추세요: 철구는 계속 움직입니다' : '벽에 부딪히거나 버킷을 박아 넣으세요');
   }
   return true;
 }
@@ -1435,10 +1436,10 @@ function heistUse(): boolean {
     sounds.pickup();
     const got = heist.loot.filter((x) => x.required && x.taken).length;
     const need = heist.loot.filter((x) => x.required).length;
-    hud.banner(l.name.toUpperCase(), l.required ? `${got} OF ${need} TAKEN` : 'A BONUS PIECE', true);
-    award(l.required ? 2500 : 4000, l.at.toArray(), l.required ? 'TAKEN' : 'BONUS');
-    raiseAlarm('You took the first piece');
-    if (!requiredLeft()) hud.hint('All the required loot taken: get to the <b>truck</b>');
+    hud.banner(l.name.toUpperCase(), l.required ? `${need}개 중 ${got}개 확보` : '보너스 전리품', true);
+    award(l.required ? 2500 : 4000, l.at.toArray(), l.required ? '확보' : '보너스');
+    raiseAlarm('첫 전리품을 가져갔습니다');
+    if (!requiredLeft()) hud.hint('필수 전리품을 모두 확보했습니다: <b>트럭</b>으로 가세요');
     return true;
   }
   if (truckNear()) {
@@ -1460,7 +1461,7 @@ function raiseAlarm(cause: string): void {
   heist.timeLeft = level.heist?.alarm ?? 60;
   sounds.siren(true);
   sounds.duck(4, 1.5);
-  hud.banner('ALARM', `${cause.toUpperCase()} · ${heist.timeLeft} SECONDS`, true);
+  hud.banner('경보', `${cause} · ${heist.timeLeft}초`, true);
   addTrauma(0.15);
   if (PATCH_TEST) console.log('pass heist-alarm');
 }
@@ -1472,7 +1473,7 @@ function updateHeist(dt: number): void {
   const got = heist.loot.filter((l) => l.required && l.taken).length;
   const bonus = heist.loot.filter((l) => !l.required && l.taken).length;
   const bonusAll = heist.loot.filter((l) => !l.required).length;
-  hud.loot(need ? got / need : 1, `LOOT ${got}/${need} · BONUS ${bonus}/${bonusAll}`);
+  hud.loot(need ? got / need : 1, `전리품 ${got}/${need} · 보너스 ${bonus}/${bonusAll}`);
   for (const l of heist.loot) {
     if (l.taken) continue;
     // Held by the ground, a standing voxel or rubble under it; else it falls (nothing hovers, the loot neither)
@@ -1500,10 +1501,10 @@ function updateHeist(dt: number): void {
     if (b.voxel >= 0 && city.state[b.voxel] !== State.Fixed) {
       b.gone = true;
       b.mesh.removeFromParent();
-      raiseAlarm('An alarm box was broken');
+      raiseAlarm('경보 장치가 파괴됐습니다');
     }
   }
-  if (fires.length >= 30) raiseAlarm('The fire set off the alarm');
+  if (fires.length >= 30) raiseAlarm('화재가 경보를 울렸습니다');
   // The truck: its arrow once the required loot is in hand
   if (heist.arrow) {
     heist.arrow.visible = !requiredLeft() && heist.state !== 'out';
@@ -1519,16 +1520,16 @@ function updateHeist(dt: number): void {
   if (phase !== 'play') return;
   if (riding === null && !paused) {
     const l = lootNear();
-    if (l) hud.prompt(`<b>F</b> Take the ${l.name.toLowerCase()}`);
-    else if (truckNear()) hud.prompt(requiredLeft() ? `<b>F</b> ${requiredLeft()} more to take before you go` : '<b>F</b> Get in the truck');
+    if (l) hud.prompt(`<b>F</b> ${l.name} 가져가기`);
+    else if (truckNear()) hud.prompt(requiredLeft() ? `<b>F</b> 떠나기 전에 ${requiredLeft()}개 더 가져가야 합니다` : '<b>F</b> 트럭에 타기');
   }
   if (heist.state === 'prep') {
-    hud.clock(0, heist.save ? 'PREP · SAVED' : 'PREP · NO CLOCK');
+    hud.clock(0, heist.save ? '준비 · 저장됨' : '준비 · 시간 제한 없음');
     return;
   }
   if (heist.state !== 'alarm') return;
   if (!cam.active && !paused) heist.timeLeft -= dt;
-  hud.clock(heist.timeLeft, 'ALARM', true);
+  hud.clock(heist.timeLeft, '경보', true);
   if (heist.timeLeft <= 10 && Math.ceil(heist.timeLeft) !== Math.ceil(heist.timeLeft + dt) && heist.timeLeft > 0) sounds.blip(880, 0.07, 0.07, 'square');
   // The chopper: in with 15 s left, louder as it closes (only a sound and a shake: the clock is the fail)
   sounds.chopper(heist.timeLeft < 15 ? Math.min(1, Math.sqrt((15 - heist.timeLeft) / 15)) : 0);
@@ -1554,12 +1555,12 @@ function finishHeist(win: boolean): void {
   const timeBonus = win ? Math.round(left * 100) : 0;
   const score = win ? game.score + timeBonus : Math.round(game.score * 0.25);
   const rows: [string, string][] = [
-    ['Required loot', `${got} of ${need}`],
-    ['Bonus loot', `${bonus} of ${heist.loot.length - need}`],
-    ['Time left on the alarm', win ? `${left.toFixed(1)} s` : 'none'],
+    ['필수 전리품', `${need}개 중 ${got}개`],
+    ['보너스 전리품', `${heist.loot.length - need}개 중 ${bonus}개`],
+    ['경보 남은 시간', win ? `${left.toFixed(1)}초` : '없음'],
   ];
-  if (heist.cause) rows.push(['Alarm', heist.cause]);
-  if (timeBonus) rows.push(['Time bonus', `+${timeBonus.toLocaleString()}`]);
+  if (heist.cause) rows.push(['경보', heist.cause]);
+  if (timeBonus) rows.push(['시간 보너스', `+${timeBonus.toLocaleString()}`]);
   void spec;
   game.score = score;
   const best = score > (progress.heistBest[levelId] ?? 0);
@@ -1568,9 +1569,9 @@ function finishHeist(win: boolean): void {
   progress.heistStars[levelId] = Math.max(progress.heistStars[levelId] ?? 0, stars);
   save();
   unlockedRows(rows, had);
-  const title = win ? (stars === 3 ? 'Clean getaway' : stars === 2 ? 'Away' : 'Just made it') : 'Caught';
+  const title = win ? (stars === 3 ? '깔끔한 탈출' : stars === 2 ? '탈출 성공' : '아슬아슬한 탈출') : '체포됨';
   if (win) heist.leaving = 0.01;
-  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · SALVAGE`, stars, rows, score, best: best && win, hasNext: false, replay: replays.best() });
+  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · 샐비지`, stars, rows, score, best: best && win, hasNext: false, replay: replays.best() });
   hud.show(false);
   endCam();
   if (win) cam.centre.copy(heist.truckAt).setZ(2);
@@ -1583,11 +1584,11 @@ function finishHeist(win: boolean): void {
 function quicksave(): void {
   if (!heist.on || phase !== 'play') return;
   if (heist.state !== 'prep') {
-    hud.toast('No saving once the alarm has gone');
+    hud.toast('경보가 울린 후에는 저장할 수 없습니다');
     return;
   }
   if (physics.sections.size || physics.loose > 60 || pending.length || fuses.length || rockets.length || pipeBombs.length) {
-    hud.toast('Wait for the dust to settle, then save');
+    hud.toast('먼지가 가라앉은 뒤에 저장하세요');
     return;
   }
   heist.save = {
@@ -1602,7 +1603,7 @@ function quicksave(): void {
     cables: cables.filter((c) => !c.cut).map((c) => ({ ends: c.ends.map((e) => structuredClone(e)), pa: c.points[0].toArray(), pb: c.points[c.points.length - 1].toArray(), rest: c.rest })),
     score: game.score,
   };
-  hud.toast('Saved. F9 loads it (until the alarm)');
+  hud.toast('저장했습니다. F9로 불러오기 (경보 전까지)');
   sounds.blip(1320, 0.06, 0.1);
 }
 
@@ -1610,7 +1611,7 @@ function quicksave(): void {
 async function quickload(): Promise<void> {
   const s = heist.save;
   if (!heist.on || !s || heist.state !== 'prep' || phase !== 'play') {
-    if (heist.on && !s) hud.toast('Nothing saved yet: F5 saves during the prep');
+    if (heist.on && !s) hud.toast('아직 저장된 것이 없습니다: 준비 중에 F5로 저장하세요');
     return;
   }
   for (const c of placed.splice(0)) c.mesh.removeFromParent();
@@ -1661,7 +1662,7 @@ async function quickload(): Promise<void> {
   player.pitch = s.player[4];
   view.setPaints(city, physics.voxelOf);
   unsettled = true;
-  hud.toast('Loaded the quicksave');
+  hud.toast('빠른 저장을 불러왔습니다');
 }
 
 /** A charge or cutter stuck at `at` on a face with normal `n` (placeCharge, and the quickload). */
@@ -1808,7 +1809,7 @@ function spawn(): void {
 async function startLevel(id: number): Promise<void> {
   if (phase === 'loading' || startingUp) return;
   if (lotLocked(id)) {
-    hud.toast(`${LEVELS[id].name}: unlocks at ${LOT_STARS[id]} stars`);
+    hud.toast(`${LEVELS[id].name}: 별 ${LOT_STARS[id]}개에 잠금 해제`);
     return;
   }
   if (!isReady) {
@@ -1833,16 +1834,16 @@ async function startLevel(id: number): Promise<void> {
   replays.clear();
   for (const r of rockets.splice(0)) r.mesh.removeFromParent();
   hud.resetScore();
-  hud.setJob(level.name, blow ? 'Wire it up with charges and cutters (R sets each one’s delay), then Q. Scored on a clean drop.' : level.brief, level.stars);
+  hud.setJob(level.name, blow ? '장약과 절단 장약으로 배선하세요(R로 각 장약의 지연 설정). Q로 기폭. 깔끔하게 무너질수록 고득점.' : level.brief, level.stars);
   hud.show(true);
   tool = -1;
   showLocks();
   selectTool(blow ? CHARGE : id === 0 || id === 1 || id === 3 ? CANNON : CHARGE);
   hud.select(tool);
   hand.select(tool);
-  hud.banner(level.name, blow ? `BLOWDOWN ${lotNumber(id)}` : sand ? 'SANDBOX' : heist.on ? 'SALVAGE' : `CONTRACT ${lotNumber(id)}`);
-  if (sand) hud.setJob(level.name, 'Sandbox: every tool, no limits. B spawns props, T sets the time of day.', level.stars);
-  if (heist.on) hud.setJob(level.name, 'Plan with no clock (F5 saves, F9 loads). Take a piece and the alarm gives you 60 s to reach the truck.', level.stars);
+  hud.banner(level.name, blow ? `블로우다운 ${lotNumber(id)}` : sand ? '샌드박스' : heist.on ? '샐비지' : `계약 ${lotNumber(id)}`);
+  if (sand) hud.setJob(level.name, '샌드박스: 모든 도구 무제한. B로 소품 소환, T로 시간대 변경.', level.stars);
+  if (heist.on) hud.setJob(level.name, '시간 제한 없이 계획하세요(F5 저장, F9 불러오기). 전리품을 가져가면 경보가 울리고 60초 안에 트럭에 도달해야 합니다.', level.stars);
   phase = 'intro';
   cam.active = false;
   timeScale = 1;
@@ -1884,26 +1885,26 @@ const cards = (): ContractCard[] => {
     }));
 };
 const BLOWDOWN_BRIEFS = [
-  'Drop the house on its own plot. Don’t touch the shed.',
-  'Lay the tower in the ring with as few charges as it takes.',
-  'Bring all eleven storeys straight down into the footprint.',
-  'Flatten the barn and lay the silo into the field.',
-  'Fell the chimney down the yard, clear of the boiler house.',
-  'Pancake all five decks straight down. Spare the ticket hut.',
-  'Drop the canopy and the shop without setting the street alight.',
+  '집을 그 부지 안에 무너뜨리세요. 헛간은 건드리지 마세요.',
+  '필요한 만큼의 장약만으로 탑을 링 안에 눕히세요.',
+  '11층 전부를 건물 자리 안으로 수직으로 무너뜨리세요.',
+  '헛간을 납작하게 하고 사일로를 들판에 눕히세요.',
+  '굴뚝을 마당 쪽으로 쓰러뜨리되 보일러실은 비켜 가세요.',
+  '다섯 층을 수직으로 무너뜨리세요. 매표소는 보존하세요.',
+  '캐노피와 상점을 무너뜨리되 거리에 불을 붙이지 마세요.',
   '',
-  'Drop the boathouse and the pier end into the sea. Spare the lighthouse.',
-  'Bring the crusher house and the conveyor down where they stand.',
-  'Fell the steeple into the ring on the green, clear of the nave.',
+  '보트 창고와 부두 끝을 바다에 빠뜨리세요. 등대는 보존하세요.',
+  '파쇄동과 컨베이어를 제자리에서 무너뜨리세요.',
+  '첨탑을 공터의 링 안으로 쓰러뜨리되 예배당은 비켜 가세요.',
 ];
 
 // ---------- startup ----------
 const loader = new Loader([
-  { name: 'Starting the GPU and loading materials', weight: 4 },
-  { name: 'Building the lot', weight: 2 },
-  { name: 'Starting the physics', weight: 2 },
-  { name: 'Lighting the sky', weight: 1 },
-  { name: 'Compiling shaders', weight: 3 },
+  { name: 'GPU 시작 및 재질 불러오는 중', weight: 4 },
+  { name: '부지 만드는 중', weight: 2 },
+  { name: '물리 시작하는 중', weight: 2 },
+  { name: '하늘 밝히는 중', weight: 1 },
+  { name: '셰이더 컴파일 중', weight: 3 },
 ]);
 let device: GPUDevice;
 
@@ -1990,10 +1991,10 @@ let tuning = false;
 let isReady = false;
 function getReady(): Promise<void> {
   readying ??= (async () => {
-    hud.setLoading('Getting the fire and smoke ready…');
+    hud.setLoading('화재와 연기 준비 중…');
     await smokeCompiled;
     if (!profile) {
-      hud.setLoading('Tuning for this device…');
+      hud.setLoading('이 기기에 맞게 조정 중…');
       veil(true);
       phase = 'loading';
       tuning = true;
@@ -2022,9 +2023,9 @@ function getReady(): Promise<void> {
 }
 
 async function tune(key: string): Promise<DeviceProfile> {
-  loader.detail('Timing the physics…');
+  loader.detail('물리 속도 측정 중…');
   const physicsTime = await measurePhysics(device, (share) => loader.progress(share * 0.35));
-  loader.detail('Timing the drawing…');
+  loader.detail('그리기 속도 측정 중…');
   spawn();
   const [fx, fy] = level.focus;
   effects.explosion([fx, fy - 4, 3], 4.5);
@@ -2037,7 +2038,7 @@ async function tune(key: string): Promise<DeviceProfile> {
     key,
     physicsTime,
     async (quality, resolution) => {
-      loader.detail(`Timing the drawing: ${quality}${resolution < 1 ? `, ${Math.round(resolution * 100)}% resolution` : ''}…`);
+      loader.detail(`그리기 속도 측정: ${quality}${resolution < 1 ? `, 해상도 ${Math.round(resolution * 100)}%` : ''}…`);
       settings.quality = quality;
       view.baseResolution = resolution;
       view.setQuality(quality);
@@ -2142,7 +2143,7 @@ const alarms = {
         const at = new THREE.Vector3((b.x0 + b.w / 2) * VOXEL, (b.y0 + b.d / 2) * VOXEL, 0.8);
         on = { alarm, until: now + 20, at, started: now };
         this.on.set(i, on);
-        award(300, at.toArray(), "CAR ALARM!", "big");
+        award(300, at.toArray(), '차량 경보!', 'big');
       }
       if (this.broken(i)) on.until = Math.min(on.until, Math.max(now + 0.05, on.started + 2.2));
     }
@@ -2201,7 +2202,7 @@ function award(points: number, at: ArrayLike<number> | null, label?: string, siz
       const step = Math.floor(game.combo);
       if ((step === 3 || step === 5) && step > comboBanner) {
         comboBanner = step;
-        callout(step === 5 ? 'MAX COMBO' : 'CHAIN REACTION', `COMBO x${step}`);
+        callout(step === 5 ? '최대 콤보' : '연쇄 반응', `콤보 x${step}`);
       }
     }
   } else {
@@ -2239,7 +2240,7 @@ function scored(result: BlastResult, at: ArrayLike<number>, quiet = false): void
   game.voxelsBroken += result.gone.length + result.loose.length + result.falling.length;
   if (keepLost > 6 && (phase === 'play' || phase === 'grace')) {
     const s = screenOf(at);
-    if (s) hud.popup(s[0], s[1] - 30, `${level.keepName.toUpperCase()} HIT`, 'bad');
+    if (s) hud.popup(s[0], s[1] - 30, `${level.keepName} 피격`, 'bad');
   }
   const falling = result.falling.length;
   game.biggest = Math.max(game.biggest, falling);
@@ -2248,8 +2249,8 @@ function scored(result: BlastResult, at: ArrayLike<number>, quiet = false): void
     hud.hint(TOOLS[tool].hint);
   }
   const size = falling > 1500 ? 'huge' : falling > 300 || pts > 1500 ? 'big' : 'small';
-  const label = falling > 1500 ? 'COLLAPSE!' : falling > 300 ? 'TOPPLED' : result.panes.length >= 3 ? 'SMASH' : undefined;
-  award(pts, at, label === 'COLLAPSE!' ? undefined : label, size, quiet && falling < 300);
+  const label = falling > 1500 ? '붕괴!' : falling > 300 ? '전도' : result.panes.length >= 3 ? '파괴' : undefined;
+  award(pts, at, label === '붕괴!' ? undefined : label, size, quiet && falling < 300);
   if (falling > 300) {
     // The middle of what's coming down
     const c = new THREE.Vector3();
@@ -2264,7 +2265,7 @@ function scored(result: BlastResult, at: ArrayLike<number>, quiet = false): void
     c.divideScalar(Math.max(1, n));
     if (falling > 1200 || (falling > 500 && game.combo >= 3)) killcam(c, falling);
     // (During the replay, after its hold, so it doesn't sit over the fall itself)
-    if (falling > 1500) callout('COLLAPSE!', `${falling.toLocaleString()} VOXELS`);
+    if (falling > 1500) callout('붕괴!', `복셀 ${falling.toLocaleString()}개`);
     if (falling > 1500) rumbleUntil = Math.max(rumbleUntil, simTime + Math.min(6, 1 + falling / 900));
     sounds.debrisTail(falling, player.position.distanceTo(c), 0.25, [c.x, c.y, c.z]);
   }
@@ -2539,24 +2540,24 @@ function anchorAt(a: Anchor): THREE.Vector3 | null {
 function rigClick(kind: 'plank' | 'cable'): void {
   const left = kind === 'plank' ? game.planks : game.cables;
   if (left <= 0 && !unlimited()) {
-    hud.toast(kind === 'plank' ? 'Out of planks' : 'Out of cables');
+    hud.toast(kind === 'plank' ? '판자가 없습니다' : '케이블이 없습니다');
     return;
   }
   const t = rigTarget(kind);
   if (!t) {
-    hud.toast('Nothing there to fix it to');
+    hud.toast('고정할 곳이 없습니다');
     return;
   }
   if (!rigStart || rigStart.kind !== kind) {
     rigStart = { kind, ...t };
     sounds.play('clack', 0.3, 0, { rate: 1.2 });
-    hud.hint(kind === 'plank' ? '<b>Click</b> where the other end goes' : '<b>Click</b> what the other end ties to');
+    hud.hint(kind === 'plank' ? '다른 쪽 끝을 놓을 곳을 <b>클릭</b>하세요' : '다른 쪽 끝을 묶을 곳을 <b>클릭</b>하세요');
     return;
   }
   const len = rigStart.at.distanceTo(t.at);
   const max = kind === 'plank' ? PLANK_MAX : CABLE_MAX;
   if (len > max || len < 0.6) {
-    hud.toast(len > max ? `Too long: ${kind === 'plank' ? 'a plank' : 'a cable'} reaches ${max} m` : 'Too short');
+    hud.toast(len > max ? `너무 깁니다: ${kind === 'plank' ? '판자' : '케이블'}는 최대 ${max}m입니다` : '너무 짧습니다');
     return;
   }
   if (kind === 'plank') layPlank(rigStart.at, t.at, rigStart.hold, t.hold);
@@ -2770,7 +2771,7 @@ function spawnProp(kind: string): void {
   const pool = level.pool?.[kind] ?? [];
   const used = spawnUsed[kind] ?? 0;
   if (used >= pool.length) {
-    hud.toast(`No more ${kind === 'bottles' ? 'gas bottles' : `${kind}s`} to spawn here`);
+    hud.toast(`${{ propane: '프로판 탱크', drum: '연료 드럼', bottles: '가스통', car: '자동차', crates: '상자', tanker: '연료 탱커' }[kind] ?? kind}: 여기에 더 소환할 수 없습니다`);
     return;
   }
   const b = pool[used];
@@ -2781,7 +2782,7 @@ function spawnProp(kind: string): void {
   if (dir.z < -0.01) t = Math.min(t, -eye.z / dir.z);
   const at = eye.clone().addScaledVector(dir, Math.max(2.5, t - 0.8));
   if (!moveObject(b, at.x, at.y)) {
-    hud.toast('Can’t put it there');
+    hud.toast('여기에 놓을 수 없습니다');
     return;
   }
   spawnUsed[kind] = used + 1;
@@ -2846,7 +2847,7 @@ function pipeMesh(): THREE.Group {
 /** A pipe bomb thrown where the player looks: it flies, bounces and rolls, the fuse fizzing, and goes in three seconds. */
 function throwPipe(): void {
   if (game.pipes <= 0 && !unlimited()) {
-    hud.toast('Out of pipe bombs');
+    hud.toast('파이프 폭탄이 없습니다');
     sounds.click();
     return;
   }
@@ -2929,7 +2930,7 @@ function igniteGas(b: number, from: ArrayLike<number>): void {
   effects.smoulder(start.toArray(), 1.5, 3);
   effects.sparks(start.toArray(), 30, 6);
   sounds.gasJet([start.x, start.y, start.z]);
-  hud.toast('Gas line ruptured!');
+  hud.toast('가스 배관 파열!');
   for (const p of points) gasBlasts.push({ due: simTime + 0.5 + p.distanceTo(start) * 0.07, at: p.setZ(Math.max(0.4, p.z)) });
 }
 function gasDue(): void {
@@ -2948,7 +2949,7 @@ const rockets: { mesh: THREE.Mesh; p: THREE.Vector3; v: THREE.Vector3; trail: nu
 /** A rocket: fast, flat, a smoke trail; it bursts on the first thing it meets, standing or fallen. */
 function fireRocket(): void {
   if (game.rockets <= 0 && phase !== 'free') {
-    hud.toast('Out of rockets');
+    hud.toast('로켓이 없습니다');
     sounds.click();
     return;
   }
@@ -3123,7 +3124,7 @@ function tooHard(at: THREE.Vector3, normal: ArrayLike<number>, mat: number, dist
   addTrauma(0.08);
   if (!toldHard && (phase === 'play' || phase === 'free')) {
     toldHard = true;
-    hud.toast(mat === Mat.Rock ? 'Bedrock: nothing breaks that' : mat === Mat.Girder ? 'Steel girder: too hard. A charge cuts it' : 'Reinforced concrete: too hard. Use a charge');
+    hud.toast(mat === Mat.Rock ? '기반암: 무엇으로도 부술 수 없습니다' : mat === Mat.Girder ? '강철 보: 너무 단단합니다. 장약으로 절단하세요' : '철근 콘크리트: 너무 단단합니다. 장약을 사용하세요');
   }
 }
 
@@ -3253,13 +3254,13 @@ function chargeMesh(): { mesh: THREE.Group; light: THREE.Mesh } {
 }
 function placeCharge(kind: 'charge' | 'cutter' = 'charge'): void {
   if (kind === 'charge' ? game.charges <= 0 : game.cutters <= 0) {
-    hud.toast(kind === 'charge' ? 'Out of charges' : 'Out of cutters');
+    hud.toast(kind === 'charge' ? '장약이 없습니다' : '절단 장약이 없습니다');
     sounds.click();
     return;
   }
   const hit = aim(TOOLS[CHARGE].reach);
   if (!hit) {
-    hud.toast('Too far: get up close to a wall');
+    hud.toast('너무 멉니다: 벽 가까이 다가가세요');
     return;
   }
   const n = new THREE.Vector3(...hit.normal);
@@ -3271,13 +3272,13 @@ function placeCharge(kind: 'charge' | 'cutter' = 'charge'): void {
   putDevice(kind, at, n, along, fuseDelay);
   if (kind === 'charge') game.charges--;
   else game.cutters--;
-  if (fuseDelay > 0) hud.toast(`${kind === 'charge' ? 'Charge' : 'Cutter'} set: fires ${fuseDelay} s after the button`);
+  if (fuseDelay > 0) hud.toast(`${kind === 'charge' ? '장약' : '절단 장약'} 설치: 버튼을 누르면 ${fuseDelay}초 후 기폭`);
   hand.place();
   hand.armed = true;
   sounds.play('clack', 0.3, 0, { rate: 0.7 });
   sounds.blip(1800, 0.05, 0.06, 'square');
   effects.impact(at.toArray(), 2, smokeTint);
-  if (placed.length === 1) hud.hint('<b>Right click</b> or <b>Q</b> to blow the charges');
+  if (placed.length === 1) hud.hint('<b>우클릭</b> 또는 <b>Q</b>로 장약 기폭');
 }
 function detonateAll(): void {
   const waiting = placed.filter((c) => c.due === Infinity);
@@ -3290,7 +3291,7 @@ function detonateAll(): void {
   waiting.forEach((c, k) => (c.due = simTime + 0.25 + (mode === 'blowdown' ? 0 : k * 0.12) + c.delay));
   if (mode === 'blowdown' && blownAt < 0) {
     blownAt = simTime;
-    hud.banner('FIRE IN THE HOLE', 'BLOWDOWN', true);
+    hud.banner('기폭!', '블로우다운', true);
   }
 }
 function chargesDue(): void {
@@ -3846,8 +3847,8 @@ async function readDebris(): Promise<void> {
     }
     if (zone && !game.zoneHit && inZone > 220 && (phase === 'play' || phase === 'grace')) {
       game.zoneHit = true;
-      hud.banner('BULLSEYE', 'DROPPED IN THE RING');
-      award(5000, [zone.x, zone.y, 0.5], 'BULLSEYE', 'huge');
+      hud.banner('명중', '링 안에 떨어짐');
+      award(5000, [zone.x, zone.y, 0.5], '명중', 'huge');
       sounds.play('horn', 0.4, 0);
     }
     player.debris = Float32Array.from(out);
@@ -3968,7 +3969,7 @@ async function readDebris(): Promise<void> {
           // (Scored as 1.6 scored it, so bests still compare: half a point a voxel of what a slam left whole then, and a
           // hard slam sent up to half the piece to dust before it was counted)
           const left = v > 4 ? 1 - Math.min(0.5, (v - 3) / 10) : 1;
-          award(Math.round(count * 0.5 * left), at.toArray(), 'IMPACT', count > 1500 ? 'big' : 'small');
+          award(Math.round(count * 0.5 * left), at.toArray(), '충격', count > 1500 ? 'big' : 'small');
         }
         if (v > CRUSH_SPEED) for (let i = 0; i < low.length; i += 9) crushAt.push({ at: [low[i], low[i + 1], low[i + 2] - gap - 0.3], radius: RADII.crush(v)[0], radii: RADII.crush(v), push: v * 0.12, core: 0.35 });
       };
@@ -4063,8 +4064,8 @@ async function readDebris(): Promise<void> {
     rbLap('rb.sections');
     if (zone && !game.zoneHit && inZone > 220 && (phase === 'play' || phase === 'grace')) {
       game.zoneHit = true;
-      hud.banner('BULLSEYE', 'DROPPED IN THE RING');
-      award(5000, [zone.x, zone.y, 0.5], 'BULLSEYE', 'huge');
+      hud.banner('명중', '링 안에 떨어짐');
+      award(5000, [zone.x, zone.y, 0.5], '명중', 'huge');
     }
     if (crushAt.length) {
       const r = blasts(city, structure, physics, crushAt);
@@ -4166,7 +4167,7 @@ function rollCam(centre: THREE.Vector3, size: number): void {
   hud.cine(true);
   sounds.slowMo(true);
   // Recorded while it plays: the best of these are on the results to watch again
-  replays.capture(cam.hold + 0.9, size, size > 20000 ? 'TOTAL COLLAPSE' : size > 5000 ? 'COLLAPSE' : 'TOPPLED');
+  replays.capture(cam.hold + 0.9, size, size > 20000 ? '전면 붕괴' : size > 5000 ? '붕괴' : '전도');
 }
 function endCam(): void {
   cam.active = true;
@@ -4322,7 +4323,7 @@ function tick(now: number): void {
     }
     if (!riding) {
       const near = machineNear();
-      hud.prompt(near ? `<b>F</b> Climb into the ${near.kind}` : null);
+      hud.prompt(near ? `<b>F</b> ${near.kind === 'crane' ? '크레인' : '굴착기'}에 타기` : null);
     }
     if ((tool !== JACK || riding) && hand.running) {
       hand.running = false;
@@ -4374,7 +4375,7 @@ function tick(now: number): void {
     game.barrelsBlown++;
     const s = f.scale;
     explode(f.at, RADII.propane[0] * s, 13 * s, { fire: 2.2 * s, sample: 'propane', radii: [RADII.propane[0] * s, RADII.propane[1] * s, RADII.propane[2] * s] });
-    award(500 * Math.round(s * s), f.at.toArray(), s > 1.4 ? 'MEGA KABOOM' : 'KABOOM', 'big');
+    award(500 * Math.round(s * s), f.at.toArray(), s > 1.4 ? '초대형 폭발' : '대폭발', 'big');
   }
   gasDue();
   updatePipes(sim);
@@ -4434,9 +4435,9 @@ function tick(now: number): void {
     if (u >= 1) {
       phase = 'play';
       hud.hint(TOOLS[tool].hint);
-      if (levelId === 0) hud.hint('Shoot the <b>red tanks</b> by the house');
-      if (levelId === 1) hud.hint('Cut the legs on the <b>ring&#8217;s side</b>: it falls toward the cut');
-      if (levelId === 2) hud.hint('Girders and the concrete core take a charge · <b>L</b> shows the load on each storey');
+      if (levelId === 0) hud.hint('집 옆의 <b>빨간 탱크</b>를 쏘세요');
+      if (levelId === 1) hud.hint('<b>링 쪽</b>의 다리를 절단하세요: 절단한 쪽으로 쓰러집니다');
+      if (levelId === 2) hud.hint('보와 콘크리트 코어는 장약이 필요합니다 · <b>L</b>로 층별 하중 보기');
     }
   } else if (cam.active) {
     cam.t += cam.kind === 'end' ? dt : 0;
@@ -4564,9 +4565,9 @@ let overlayOn = false;
 /** Loads seen (tests): creaks played, trickles, tells (voxels let go), sags that let go. */
 const loadStats = { creaks: 0, trickles: 0, tells: 0, sagged: 0, maxR: 0 };
 function storeyName(z: number): string {
-  if (level.id === 1) return z < 48 ? 'LEGS' : 'TANK';
-  if (level.id === 2) return z < 18 ? 'GROUND FLOOR' : `STOREY ${2 + Math.floor((z - 18) / 12)}`;
-  return z <= 12 ? 'GROUND FLOOR' : 'UPSTAIRS';
+  if (level.id === 1) return z < 48 ? '다리' : '탱크';
+  if (level.id === 2) return z < 18 ? '1층' : `${2 + Math.floor((z - 18) / 12)}층`;
+  return z <= 12 ? '1층' : '2층';
 }
 function layerPoint(i: number, z: number): [number, number, number] {
   const o = city.buildings[i];
@@ -4644,7 +4645,7 @@ function watchLoads(dt: number): void {
       }
     }
   }
-  if (job.z >= 0 && job.r >= 0.75 && phase !== 'intro') hud.load(`${storeyName(job.z)} · ${Math.round(Math.min(job.r, 1) * 100)}% LOAD`, job.r, job.r > 0.95);
+  if (job.z >= 0 && job.r >= 0.75 && phase !== 'intro') hud.load(`${storeyName(job.z)} · 하중 ${Math.round(Math.min(job.r, 1) * 100)}%`, job.r, job.r > 0.95);
   else hud.load(null);
   // The load overlay (L): every storey of the job by its load
   if (overlayOn && now - overlayAt > 0.5) {
@@ -4681,12 +4682,12 @@ function updateGame(dt: number): void {
     for (const v of keepVoxels) if (city.state[v] === State.Fixed) kept++;
     game.demolition = 1 - fixed / targetTotal;
     game.keepShare = kept / keepTotal;
-    if (heist.on) hud.keep(heist.state === 'prep' ? 'No clock until you take something' : heist.state === 'alarm' ? (requiredLeft() ? `${requiredLeft()} required piece${requiredLeft() > 1 ? 's' : ''} left` : 'Get to the truck!') : '', heist.state === 'alarm');
+    if (heist.on) hud.keep(heist.state === 'prep' ? '무언가 가져가기 전까지 시간 제한 없음' : heist.state === 'alarm' ? (requiredLeft() ? `필수 전리품 ${requiredLeft()}개 남음` : '트럭으로 가세요!') : '', heist.state === 'alarm');
     else hud.job(game.demolition, level.stars, level.job.toUpperCase());
     if (heist.on) {
       // (the heist's panel: updateHeist)
-    } else if (level.keep.length) hud.keep(`${level.keepName}: ${Math.round(game.keepShare * 100)}% standing${game.keepShare >= 0.9 ? ' · bonus kept' : ' · bonus lost'}`, game.keepShare < 0.9);
-    else if (level.zone) hud.keep(game.zoneHit ? 'In the ring: bonus earned' : 'Drop it in the ring for a bonus', false);
+    } else if (level.keep.length) hud.keep(`${level.keepName}: ${Math.round(game.keepShare * 100)}% 서 있음${game.keepShare >= 0.9 ? ' · 보너스 유지' : ' · 보너스 상실'}`, game.keepShare < 0.9);
+    else if (level.zone) hud.keep(game.zoneHit ? '링 안: 보너스 획득' : '링 안에 떨어뜨리면 보너스', false);
     else hud.keep('', false);
   }
   if (simTime - game.comboAt > 1.5 && game.combo > 1) game.combo = 1;
@@ -4694,12 +4695,12 @@ function updateGame(dt: number): void {
   if (heist.on && (phase === 'play' || phase === 'end')) {
     updateHeist(dt);
   } else if (phase === 'play' && mode === 'sandbox') {
-    hud.clock(0, 'SANDBOX');
+    hud.clock(0, '샌드박스');
   } else if (phase === 'play' && mode === 'blowdown') {
     // No clock: plan, then blow it once; the result once it has settled (or 15 s after)
-    if (blownAt < 0) hud.clock(0, 'PLANNING');
+    if (blownAt < 0) hud.clock(0, '계획 중');
     else {
-      hud.clock(Math.max(0, simTime - blownAt), 'BLOWDOWN');
+      hud.clock(Math.max(0, simTime - blownAt), '블로우다운');
       const quiet = physics.sections.size === 0 && physics.loose < 400 && placed.length === 0;
       if (!cam.active && ((quiet && simTime - blownAt > 4) || simTime - blownAt > 15)) finish();
     }
@@ -4710,20 +4711,20 @@ function updateGame(dt: number): void {
     if (game.demolition >= level.stars[2] && !game.demolishedCalled) {
       game.demolishedCalled = true;
       game.timeLeftAtDemolish = game.timeLeft;
-      hud.banner('DEMOLISHED', 'THREE STARS · TIME BONUS');
+      hud.banner('전면 철거', '별 3개 · 시간 보너스');
       game.timeLeft = Math.min(game.timeLeft, 0.01);
     }
     if (game.timeLeft <= 0) {
       phase = 'grace';
       game.grace = 4;
       sounds.play('whistle', 0.6, 0, { spread: 0.02 }) || sounds.blip(660, 0.1, 0.4);
-      if (!game.demolishedCalled) hud.banner("TIME'S UP", 'LET IT SETTLE');
+      if (!game.demolishedCalled) hud.banner('시간 종료', '가라앉기를 기다리세요');
     }
   } else if (phase === 'free') {
-    hud.clock(0, 'FREE PLAY');
+    hud.clock(0, '자유 플레이');
   } else if (phase === 'grace') {
     game.grace -= dt;
-    hud.clock(0, 'SETTLING');
+    hud.clock(0, '가라앉는 중');
     // A collapse under way gets to finish (up to 6 s more): you can't cut off a falling tower
     const busy = physics.sections.size > 0 || physics.loose > 2500;
     if (game.grace <= 0 && !cam.active && (!busy || game.grace < -6)) finish();
@@ -4771,19 +4772,19 @@ function finish(): void {
   }
   const share = game.demolition;
   const stars = level.stars.filter((s) => share >= s).length;
-  const rows: [string, string][] = [[`${level.job} demolished`, `${Math.floor(share * 100)}%`]];
+  const rows: [string, string][] = [[`${level.job} 파괴`, `${Math.floor(share * 100)}%`]];
   let bonus = 0;
   if (level.keep.length) {
     const kept = game.keepShare >= 0.9;
-    rows.push([`${level.keepName} left standing`, kept ? '+3,000' : `${Math.round(game.keepShare * 100)}% · no bonus`]);
+    rows.push([`${level.keepName} 보존`, kept ? '+3,000' : `${Math.round(game.keepShare * 100)}% · 보너스 없음`]);
     if (kept && share > 0.3) bonus += 3000;
   }
-  if (level.zone) rows.push(['Dropped in the ring', game.zoneHit ? 'yes' : 'no']);
+  if (level.zone) rows.push(['링 안에 떨어짐', game.zoneHit ? '예' : '아니오']);
   const timeBonus = game.demolishedCalled ? Math.round(Math.max(0, game.timeLeftAtDemolish) * 100) : 0;
-  rows.push(['Best combo', `x${game.bestCombo.toFixed(2)}`]);
-  rows.push(['Biggest collapse', `${game.biggest.toLocaleString()} voxels`]);
-  if (game.barrelsBlown) rows.push(['Tanks blown', `${game.barrelsBlown}`]);
-  if (timeBonus) rows.push(['Time bonus', `+${timeBonus.toLocaleString()}`]);
+  rows.push(['최고 콤보', `x${game.bestCombo.toFixed(2)}`]);
+  rows.push(['최대 붕괴', `복셀 ${game.biggest.toLocaleString()}개`]);
+  if (game.barrelsBlown) rows.push(['탱크 폭파', `${game.barrelsBlown}`]);
+  if (timeBonus) rows.push(['시간 보너스', `+${timeBonus.toLocaleString()}`]);
   game.score += bonus + timeBonus;
   const best = game.score > (progress.best[levelId] ?? 0);
   if (best) progress.best[levelId] = game.score;
@@ -4791,8 +4792,8 @@ function finish(): void {
   progress.stars[levelId] = Math.max(progress.stars[levelId] ?? 0, stars);
   save();
   unlockedRows(rows, had);
-  const title = stars === 3 ? 'Demolished' : stars === 2 ? 'Flattened' : stars === 1 ? 'Knocked down' : 'Still standing';
-  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · CONTRACT ${lotNumber(levelId)}`, stars, rows, score: game.score, best, hasNext: hasNextLot(levelId) && stars > 0, replay: replays.best() });
+  const title = stars === 3 ? '완전 철거' : stars === 2 ? '납작하게 철거' : stars === 1 ? '무너뜨림' : '아직 서 있음';
+  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · 계약 ${lotNumber(levelId)}`, stars, rows, score: game.score, best, hasNext: hasNextLot(levelId) && stars > 0, replay: replays.best() });
   hud.show(false);
   endCam();
   sounds.music(true);
@@ -4806,12 +4807,12 @@ function finishBlowdown(): void {
   const score = Math.max(0, Math.round(r.share * 6000 + r.inside * 4000 * r.share - r.collateral * 3 + (game.zoneHit ? 2000 : 0)));
   const stars = (r.share >= 0.6 ? 1 : 0) + (r.share >= 0.6 && r.inside >= 0.75 ? 1 : 0) + (r.share >= 0.85 && r.inside >= 0.75 && r.collateral < 400 ? 1 : 0);
   const rows: [string, string][] = [
-    [`${level.job} demolished`, `${Math.floor(r.share * 100)}%`],
-    ['Landed in its footprint', `${clean}%`],
-    ['Collateral damage', `${r.collateral.toLocaleString()} voxels`],
+    [`${level.job} 파괴`, `${Math.floor(r.share * 100)}%`],
+    ['제자리에 무너짐', `${clean}%`],
+    ['주변 피해', `복셀 ${r.collateral.toLocaleString()}개`],
   ];
-  if (level.zone) rows.push(['Dropped in the ring', game.zoneHit ? '+2,000' : 'no']);
-  rows.push(['Devices set', `${(level.charges + 3 - game.charges) + ((level.cutters ?? 2) + 2 - game.cutters)}`]);
+  if (level.zone) rows.push(['링 안에 떨어짐', game.zoneHit ? '+2,000' : '아니오']);
+  rows.push(['설치한 장치', `${(level.charges + 3 - game.charges) + ((level.cutters ?? 2) + 2 - game.cutters)}`]);
   game.score = score;
   const best = score > (progress.blowBest[levelId] ?? 0);
   if (best) progress.blowBest[levelId] = score;
@@ -4819,8 +4820,8 @@ function finishBlowdown(): void {
   progress.blowStars[levelId] = Math.max(progress.blowStars[levelId] ?? 0, stars);
   save();
   unlockedRows(rows, had);
-  const title = stars === 3 ? 'Clean drop' : stars === 2 ? 'Down' : stars === 1 ? 'Messy' : 'Still standing';
-  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · BLOWDOWN ${lotNumber(levelId)}`, stars, rows, score, best, hasNext: hasNextLot(levelId) && stars > 0, replay: replays.best() });
+  const title = stars === 3 ? '깔끔한 낙하' : stars === 2 ? '철거 성공' : stars === 1 ? '지저분함' : '아직 서 있음';
+  hud.showEnd({ title, sub: `${level.name.toUpperCase()} · 블로우다운 ${lotNumber(levelId)}`, stars, rows, score, best, hasNext: hasNextLot(levelId) && stars > 0, replay: replays.best() });
   hud.show(false);
   endCam();
   sounds.music(true);
@@ -5195,7 +5196,7 @@ const hook = {
     const n = buf.length;
     const data = new DataView(new ArrayBuffer(44 + n * 4));
     const w = (o: number, t: string) => [...t].forEach((c, i) => data.setUint8(o + i, c.charCodeAt(0)));
-    w(0, 'RIFF');
+    w(0, '연쇄 폭발');
     data.setUint32(4, 36 + n * 4, true);
     w(8, 'WAVEfmt ');
     data.setUint32(16, 16, true);

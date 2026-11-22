@@ -72,6 +72,8 @@ licence, and may not be extracted or reused.**
 | Music bed ("demolition crew" groove, looped) | Generated for this game with Sonilo v1.1 text-to-music on fal |
 | Synthesised layers (sub thumps, cracks, rumble, footsteps, glass tinkle, car alarm) | Brickfall and three-voxel-destruction's `audio.ts` (MIT) |
 
+| Open recorded sounds (67 takes: cannon, impacts, debris, concrete, wood, metal, brick, rubble, creaks) | CC0 and CC-BY-4.0 recordings from Patch's voxel destruction block, cut and mastered for Patch (sources: Freesound, Kenney; full per-file list in CREDITS.md). CC-BY credit: richardemoore, YleArkisto, juskiddink, DWOBoyle |
+
 No assets from other games, no Mixamo, nothing non-commercial.
 
 Added to Patch by Patch. The author of three-voxel-destruction can claim this listing.

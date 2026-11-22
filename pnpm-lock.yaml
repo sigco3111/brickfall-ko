@@ -11,9 +11,15 @@ importers:
       '@fontsource/anton':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/black-han-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/inter':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/noto-sans-kr':
+        specifier: ^5.3.1
+        version: 5.3.1
       three:
         specifier: 0.186.0
         version: 0.186.0
@@ -48,8 +54,14 @@ packages:
   '@fontsource/anton@5.3.0':
     resolution: {integrity: sha512-OR1D5n124n2XRs66SbX7IjcOSptljEJE8FcDNnlni2y1/M6KpTx7cU2PIWzTSsBj4WFkHPw24On8qw3qkQZuTw==}
 
+  '@fontsource/black-han-sans@5.3.0':
+    resolution: {integrity: sha512-HZtn51La10fZU1DdnbY06YcvLxF9NAkNk/GdA6rKDWPztH9zWLqVcfVvCKNmosBuFrhToGbw/pMNJ/TjdC296Q==}
+
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+
+  '@fontsource/noto-sans-kr@5.3.1':
+    resolution: {integrity: sha512-aKnPug5P6zBHaiLbGEVNyBQesyOeEUYl6C3Xedb00xO3iAHJZPQs2JOsPNVqHanKSVe1fTVmTPuYIao4noImXw==}
 
   '@oxc-project/types@0.151.0':
     resolution: {integrity: sha512-J1yXrIlNDZVzE3ada310xeAw7nH8yCAyLPuUIsjKatFPmfn5bS1oW+cM+QsGOtVWd5nhSpbwZWx/rue+r5Z+PA==}
@@ -368,7 +380,11 @@ snapshots:
 
   '@fontsource/anton@5.3.0': {}
 
+  '@fontsource/black-han-sans@5.3.0': {}
+
   '@fontsource/inter@5.3.0': {}
+
+  '@fontsource/noto-sans-kr@5.3.1': {}
 
   '@oxc-project/types@0.151.0': {}
 

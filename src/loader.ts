@@ -75,10 +75,10 @@ export class Loader {
     const message = error instanceof Error ? error.message : String(error);
     const gpu = /webgpu|adapter|gpu|device/i.test(message);
     this.root.classList.add('failed');
-    this.phase.textContent = 'Could not start';
+    this.phase.textContent = '시작할 수 없습니다';
     this.error.innerHTML = gpu
-      ? `Brickfall needs WebGPU, and this browser could not start it. Try the latest Chrome or Edge, or Safari 26.<small></small>`
-      : `Something went wrong while starting. Reloading the page may help.<small></small>`;
+      ? `Brickfall에는 WebGPU가 필요하지만 이 브라우저에서 시작하지 못했습니다. 최신 Chrome이나 Edge, 또는 Safari 26을 사용해 보세요.<small></small>`
+      : `시작하는 동안 문제가 생겼습니다. 페이지를 새로 고치면 해결될 수 있습니다.<small></small>`;
     (this.error.querySelector('small') as HTMLElement).textContent = message;
   }
 }

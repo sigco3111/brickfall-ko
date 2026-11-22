@@ -6,6 +6,11 @@ import '@fontsource/anton/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-700.css';
 import '@fontsource/inter/latin-800.css';
+import '@fontsource/black-han-sans/korean-400.css';
+import '@fontsource/noto-sans-kr/korean-400.css';
+import '@fontsource/noto-sans-kr/korean-500.css';
+import '@fontsource/noto-sans-kr/korean-700.css';
+import '@fontsource/noto-sans-kr/korean-800.css';
 import { PAD_CSS } from './pad.ts';
 
 export interface Tool {
@@ -57,8 +62,8 @@ export interface EndResult {
 
 const CSS = `
 :root { --cream: #f3efe6; --amber: #ffb347; --mustard: #d3a136; --brick: #c8392b; --teal: #2f7f86; --ink: rgba(14,15,19,0.72); }
-body { font-family: 'Inter', system-ui, sans-serif; }
-.d { font-family: 'Anton', Impact, 'Arial Black', sans-serif; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; }
+body { font-family: 'Inter', 'Noto Sans KR', system-ui, sans-serif; }
+.d { font-family: 'Anton', 'Black Han Sans', Impact, 'Arial Black', sans-serif; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; }
 .hud { position: fixed; inset: 0; z-index: 1; pointer-events: none; user-select: none; color: var(--cream); transition: opacity 300ms; }
 .hud.off { opacity: 0; }
 .hud .cross { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); }
@@ -248,15 +253,15 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 ${PAD_CSS}`;
 
 /** The controls, for the title and the pause card (the number keys run to however many tools there are). */
-const HELP = (tools: number) => `<b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> use tool · <b>1</b>–<b>${tools}</b> / wheel switch · <b>Space</b> jump · <b>Shift</b> sprint · <b>Right click</b> / <b>Q</b> detonate · <b>R</b> charge delay · <b>F</b> take loot (Salvage) · <b>L</b> load view · <b>Esc</b> pause`;
+const HELP = (tools: number) => `<b>WASD</b> 이동 · <b>마우스</b> 시점 · <b>클릭</b> 도구 사용 · <b>1</b>–<b>${tools}</b> / 휠 도구 전환 · <b>Space</b> 점프 · <b>Shift</b> 달리기 · <b>우클릭</b> / <b>Q</b> 기폭 · <b>R</b> 기폭 지연 · <b>F</b> 전리품 줍기(샐비지) · <b>L</b> 하중 보기 · <b>Esc</b> 일시 정지`;
 
 /** The game's modes: today's ninety-second contracts, or a blowdown planned with no clock and blown once. */
 export type Mode = 'rush' | 'blowdown' | 'sandbox' | 'heist';
 const MODES: Record<Mode, { name: string; what: string; tag: string }> = {
-  rush: { name: 'RUSH', what: 'Ninety seconds, every tool. Score the chaos.', tag: 'Every brick is a body. Every storey can fall. You have ninety seconds.' },
-  blowdown: { name: 'BLOWDOWN', what: 'No clock. Plan your charges and their delays, blow it once. Scored on a clean drop.', tag: 'Plan it. Wire it. One button. Drop it where it should fall.' },
-  sandbox: { name: 'SANDBOX', what: 'Every tool, no limits, no clock. B spawns tanks, cars and bottles; T sets the time of day.', tag: 'Your lot. Your rules. Bring it all down, then do it again.' },
-  heist: { name: 'SALVAGE', what: 'Plan with no clock. The first piece you take starts a 60 s alarm: grab the rest and reach the truck.', tag: 'Cut your way in. Take what they kept. Be gone before the chopper.' },
+  rush: { name: '러시', what: '90초, 모든 도구 사용. 혼돈을 점수로 바꾸세요.', tag: '모든 벽돌이 강체입니다. 모든 층이 무너질 수 있습니다. 시간은 90초.' },
+  blowdown: { name: '블로우다운', what: '시간 제한 없음. 장약과 지연을 설계하고 한 번에 기폭하세요. 깔끔하게 무너뜨릴수록 고득점.', tag: '설계하고, 배선하고, 버튼 하나로. 무너져야 할 자리로 떨어뜨리세요.' },
+  sandbox: { name: '샌드박스', what: '모든 도구 무제한, 시간 제한 없음. B로 탱크·차·가스통 소환, T로 시간대 변경.', tag: '당신의 부지, 당신의 규칙. 전부 무너뜨리고, 또 하세요.' },
+  heist: { name: '샐비지', what: '시간 제한 없이 계획하세요. 첫 전리품을 가져가는 순간 60초 경보가 울립니다. 나머지를 챙겨 트럭에 도달하세요.', tag: '뚫고 들어가세요. 그들이 숨겨둔 것을 가져가세요. 헬기가 오기 전에 떠나세요.' },
 };
 
 export class Hud {
@@ -356,8 +361,8 @@ export class Hud {
       <div class="cards">${cards
         .map(
           (c, k) => `<button class="card${c.id === selected ? ' sel' : ''}${c.locked ? ' locked' : ''}" data-id="${c.id}"${c.locked ? ` data-locked="${c.locked}"` : ''}>
-          <div class="no">${this.mode === 'blowdown' ? 'BLOWDOWN' : this.mode === 'sandbox' ? 'LOT' : this.mode === 'heist' ? 'HEIST' : 'CONTRACT'} ${k + 1}</div><div class="nm d">${c.name}</div><div class="br">${c.brief}</div>
-          <div class="ft"><span class="st">${stars(c.stars)}</span><span>${c.locked ? `<span class="lk">LOCKED · ${c.locked} ★</span>` : c.best ? `BEST ${c.best.toLocaleString()}` : '<span class="go">START</span>'}</span></div></button>`,
+          <div class="no">${this.mode === 'blowdown' ? '블로우다운' : this.mode === 'sandbox' ? '부지' : this.mode === 'heist' ? '샐비지' : '계약'} ${k + 1}</div><div class="nm d">${c.name}</div><div class="br">${c.brief}</div>
+          <div class="ft"><span class="st">${stars(c.stars)}</span><span>${c.locked ? `<span class="lk">잠김 · ★ ${c.locked}</span>` : c.best ? `최고 ${c.best.toLocaleString()}` : '<span class="go">시작</span>'}</span></div></button>`,
         )
         .join('')}</div>
       <div class="row2"><span class="keys">${this.help()}</span><span class="loading">${loading ?? ''}</span></div>
@@ -387,7 +392,7 @@ export class Hud {
   setLoading(text: string | null): void {
     this.loadingText = text;
     const l = this.title.querySelector('.loading');
-    if (l) l.textContent = text ?? 'Click a contract to start';
+    if (l) l.textContent = text ?? '계약을 선택해 시작하세요';
   }
   hideTitle(): void {
     this.title.hidden = true;
@@ -400,19 +405,19 @@ export class Hud {
   private buildPause(): void {
     const s = this.settings;
     this.pause.innerHTML = `<div class="panel">
-      <h2 class="d">Paused</h2>
+      <h2 class="d">일시 정지</h2>
       <p class="help">${this.help()}</p>
-      <div class="row"><span>Look sensitivity</span><input type="range" name="sensitivity" min="0.2" max="3" step="0.05"></div>
-      <div class="row"><span>Field of view</span><input type="range" name="fov" min="60" max="110" step="1"></div>
-      <div class="row"><span>Sound</span><input type="range" name="volume" min="0" max="1" step="0.05"></div>
-      <div class="row"><span>Music</span><input type="range" name="music" min="0" max="1" step="0.05"></div>
-      <div class="row"><span>Screen shake</span><input type="checkbox" name="shake"></div>
-      <div class="row"><span>Invert look</span><input type="checkbox" name="invertY"></div>
-      <div class="row"><span>Graphics</span><select name="graphics"><option value="auto">Auto (tuned)</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
-      <div class="sect">CONTROLLER</div>
-      <div class="row"><span>Stick sensitivity</span><input type="range" name="padSens" min="0.2" max="3" step="0.05"></div>
-      <div class="row"><span>Stick deadzone</span><input type="range" name="padDead" min="0.04" max="0.4" step="0.01"></div>
-      <div class="btns"><button class="btn primary resume">RESUME</button><button class="btn restart">RESTART</button><button class="btn quit">CONTRACTS</button></div>
+      <div class="row"><span>시점 민감도</span><input type="range" name="sensitivity" min="0.2" max="3" step="0.05"></div>
+      <div class="row"><span>시야각</span><input type="range" name="fov" min="60" max="110" step="1"></div>
+      <div class="row"><span>효과음</span><input type="range" name="volume" min="0" max="1" step="0.05"></div>
+      <div class="row"><span>음악</span><input type="range" name="music" min="0" max="1" step="0.05"></div>
+      <div class="row"><span>화면 흔들림</span><input type="checkbox" name="shake"></div>
+      <div class="row"><span>시점 반전</span><input type="checkbox" name="invertY"></div>
+      <div class="row"><span>그래픽</span><select name="graphics"><option value="auto">자동(최적화됨)</option><option value="low">낮음</option><option value="medium">중간</option><option value="high">높음</option></select></div>
+      <div class="sect">컨트롤러</div>
+      <div class="row"><span>스틱 민감도</span><input type="range" name="padSens" min="0.2" max="3" step="0.05"></div>
+      <div class="row"><span>스틱 데드존</span><input type="range" name="padDead" min="0.04" max="0.4" step="0.01"></div>
+      <div class="btns"><button class="btn primary resume">계속하기</button><button class="btn restart">다시 시작</button><button class="btn quit">계약 목록</button></div>
     </div>`;
     const input = (name: string) => this.pause.querySelector(`[name=${name}]`) as HTMLInputElement;
     for (const name of ['sensitivity', 'fov', 'volume', 'music', 'padSens', 'padDead'] as const) {
@@ -463,7 +468,7 @@ export class Hud {
       this.el.tools.insertAdjacentHTML('beforeend', `<span class="pe">${this.ends[1]}</span>`);
     }
     const close = document.querySelector('.replayview .close');
-    if (close) close.innerHTML = this.words('CLICK TO CLOSE');
+    if (close) close.innerHTML = this.words('클릭해서 닫기');
   }
   /** The tool wheel (held bumper on the pad): the tools round a circle, `at` lit; null hides it. */
   wheel(at: number | null, locked: (i: number) => boolean): void {
@@ -479,7 +484,7 @@ export class Hud {
       e.classList.toggle('on', k === at);
       e.classList.toggle('locked', locked(k));
     });
-    (w.querySelector('.mid') as HTMLElement).innerHTML = this.words('TOOLS<br>let go to pick');
+    (w.querySelector('.mid') as HTMLElement).innerHTML = this.words('도구<br>놓으면 선택');
   }
   private readonly wheelEl = (() => {
     const d = document.createElement('div');
@@ -501,16 +506,16 @@ export class Hud {
       <div class="stars">${stars}</div>
       <table>${r.rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>
       <div class="total d">${r.score.toLocaleString()}</div>
-      <div class="best">${r.best ? 'NEW BEST' : ''}</div>
-      ${r.replay ? `<button class="btn watch">▶ WATCH THE BEST MOMENT · ${r.replay.label}</button>` : ''}
-      <div class="btns"><button class="btn keep">KEEP WRECKING</button><button class="btn retry">RETRY</button>${r.hasNext ? '<button class="btn primary next">NEXT</button>' : ''}<button class="btn quit">CONTRACTS</button></div>
+      <div class="best">${r.best ? '신기록' : ''}</div>
+      ${r.replay ? `<button class="btn watch">▶ 최고의 순간 다시 보기 · ${r.replay.label}</button>` : ''}
+      <div class="btns"><button class="btn keep">계속 부수기</button><button class="btn retry">다시 하기</button>${r.hasNext ? '<button class="btn primary next">다음</button>' : ''}<button class="btn quit">계약 목록</button></div>
     </div>`;
     const replay = r.replay;
     if (replay)
       this.endScreen.querySelector('.watch')?.addEventListener('click', () => {
         const v = document.createElement('div');
         v.className = 'replayview';
-        v.innerHTML = `<video src="${replay.url}" autoplay loop muted playsinline></video><div class="cap d">${replay.label}</div><div class="close">${this.words('CLICK TO CLOSE')}</div>`;
+        v.innerHTML = `<video src="${replay.url}" autoplay loop muted playsinline></video><div class="cap d">${replay.label}</div><div class="close">${this.words('클릭해서 닫기')}</div>`;
         v.addEventListener('click', () => v.remove());
         document.body.append(v);
       });
@@ -545,7 +550,7 @@ export class Hud {
     const j = this.el.job;
     (j.querySelector('.meter > i') as HTMLElement).style.width = `${Math.min(100, share * 100).toFixed(1)}%`;
     j.querySelectorAll('.star').forEach((e, k) => e.classList.toggle('got', share >= stars[k]));
-    (j.querySelector('.pct') as HTMLElement).textContent = `${label} ${Math.floor(share * 100)}% DOWN`;
+    (j.querySelector('.pct') as HTMLElement).textContent = `${label} ${Math.floor(share * 100)}% 파괴`;
   }
   /** The job's most loaded storey ("STOREY 1 · 86% LOAD"), its load 0..1 as a bar, red near giving way; null hides it. */
   load(text: string | null, share = 0, red = false): void {
@@ -589,7 +594,7 @@ export class Hud {
     this.spawnItems = items;
     this.spawnAt = at;
     this.spawnEl.hidden = !items;
-    if (items) this.spawnEl.innerHTML = this.words(`<b>SPAWN</b>${items.map((n, k) => `<span class="${k === at ? 'on' : ''}"><i>${k + 1}</i>${n}</span>`).join('')}<em>B to close</em>`);
+    if (items) this.spawnEl.innerHTML = this.words(`<b>소환</b>${items.map((n, k) => `<span class="${k === at ? 'on' : ''}"><i>${k + 1}</i>${n}</span>`).join('')}<em>B로 닫기</em>`);
   }
   private spawnItems: string[] | null = null;
   private spawnAt = -1;
@@ -613,7 +618,7 @@ export class Hud {
     k.textContent = text;
     k.classList.toggle('lost', lost);
   }
-  clock(seconds: number, label = 'TIME', tenths = false): void {
+  clock(seconds: number, label = '시간', tenths = false): void {
     const s = Math.max(0, Math.ceil(seconds));
     (this.el.clock.querySelector('.t') as HTMLElement).textContent = tenths ? Math.max(0, seconds).toFixed(1) : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     this.el.clock.classList.toggle('alarm', tenths);
@@ -714,7 +719,7 @@ export class Hud {
     f.style.transition = 'opacity 450ms ease-out';
     f.style.opacity = '0';
   }
-  cine(on: boolean, caption = 'REPLAY · SLOW MOTION'): void {
+  cine(on: boolean, caption = '리플레이 · 슬로 모션'): void {
     this.root.classList.toggle('cine', on);
     this.el.cinecap.textContent = caption;
   }

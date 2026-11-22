@@ -15,7 +15,7 @@ body {
   overflow: hidden;
   background: #f6f3ec;
   color: var(--ink);
-  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
 }
 #view {
   display: block;
@@ -178,7 +178,7 @@ body {
   line-height: 1.45;
 }
 .gpu-lost button {
-  font: 600 14px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 600 14px/1 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
   padding: 8px 16px;
   color: #fff;
   background: #b8503f;
